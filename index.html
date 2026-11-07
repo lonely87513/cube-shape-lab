@@ -60,7 +60,10 @@ body{
 }
 button{font-family:inherit;color:inherit}
 #stage{position:fixed;inset:0}
-#scene{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#scene{
+  position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab;
+  user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
+}
 #scene.is-dragging{cursor:grabbing}
 
 /* ---------- 頂部列 ---------- */
@@ -122,6 +125,20 @@ button{font-family:inherit;color:inherit}
 #panel::-webkit-scrollbar{width:8px}
 #panel::-webkit-scrollbar-thumb{background:rgba(40,55,79,.18);border-radius:8px}
 #panel::-webkit-scrollbar-track{background:transparent}
+
+/* ---------- 手機面板收合把手（桌面版不顯示） ---------- */
+.panel-handle{
+  display:none;align-items:center;justify-content:center;gap:10px;
+  width:100%;min-height:48px;border:2px solid var(--line);border-radius:16px;
+  background:linear-gradient(180deg,#eef7ff,#ffffff);color:#5b6b85;
+  font-size:.76rem;font-weight:800;cursor:pointer;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+  box-shadow:0 3px 0 rgba(40,55,79,.06);
+}
+.panel-handle:focus-visible{outline:3px solid var(--accent-2);outline-offset:2px}
+.panel-handle:active{transform:translateY(2px);box-shadow:none}
+.panel-handle .ph-grip{width:38px;height:5px;border-radius:3px;background:rgba(40,55,79,.16)}
+.panel-handle .ph-arrow{font-size:1.05rem;line-height:1}
 .pane{display:flex;flex-direction:column;gap:14px}
 .pane[hidden]{display:none}
 .block{display:flex;flex-direction:column;gap:10px}
@@ -366,7 +383,7 @@ button{font-family:inherit;color:inherit}
 #tabbar{
   display:none;position:absolute;left:0;right:0;bottom:0;z-index:8;
   background:rgba(255,255,255,.96);border-top:2px solid var(--line);
-  padding:6px 8px calc(6px + env(safe-area-inset-bottom));gap:6px;
+  padding:6px 8px calc(6px + env(safe-area-inset-bottom, 0px));gap:6px;
   box-shadow:0 -6px 22px rgba(31,64,104,.14);
 }
 .tabbar-btn{
@@ -377,20 +394,31 @@ button{font-family:inherit;color:inherit}
 .tabbar-btn i{font-style:normal;font-size:1.3rem;line-height:1}
 .tabbar-btn.is-active{background:linear-gradient(140deg,#ffe08a,#ffb44d);color:#5b3a10}
 @media (max-width:880px){
-  #topbar{gap:8px;padding:8px 10px;padding-top:calc(8px + env(safe-area-inset-top))}
+  #topbar{gap:5px;padding:8px 8px;padding-top:calc(8px + env(safe-area-inset-top, 0px))}
   #mode-tabs{display:none}
   #tabbar{display:flex}
+  .brand{flex:0 1 auto;min-width:0;gap:8px;padding:6px 8px 6px 6px;border-radius:18px}
+  .brand>div{min-width:0}
   .brand p{display:none}
-  .brand h1{font-size:.72rem}
-  .brand .mark{width:36px;height:36px;font-size:20px;border-radius:12px}
-  .brand{padding:6px 10px 6px 6px;border-radius:18px}
-  .chip{padding:6px 10px;font-size:.68rem;border-radius:14px}
-  .chip b{font-size:.85rem}
-  .icon-btn{width:44px;height:44px;border-radius:14px;font-size:1.1rem}
+  .brand h1{font-size:.68rem;overflow:hidden;text-overflow:ellipsis}
+  .brand .mark{width:34px;height:34px;font-size:19px;border-radius:11px}
+  .stats{flex:0 0 auto;gap:5px}
+  .chip{padding:4px 7px;font-size:.64rem;border-radius:12px;gap:4px}
+  .chip b{font-size:.8rem}
+  .icon-btn{width:42px;height:42px;border-radius:13px;font-size:1.05rem}
+  .panel-handle{display:flex}
   #panel{
-    left:0;right:0;top:auto;bottom:calc(66px + env(safe-area-inset-bottom));width:auto;max-height:46vh;
-    border-radius:24px 24px 0 0;border-bottom:0;padding:14px 14px 16px;gap:12px;
+    left:0;right:0;top:auto;bottom:calc(66px + env(safe-area-inset-bottom, 0px));width:auto;max-height:46vh;
+    border-radius:24px 24px 0 0;border-bottom:0;padding:10px 14px 14px;gap:10px;
+    transition:max-height .2s ease;
   }
+  /* 收合狀態：只留「層數條 + 展開把手」，讓 3D 場景有足夠空間 */
+  #panel.is-collapsed{max-height:none;padding-bottom:10px}
+  #panel.is-collapsed .pane{gap:8px}
+  #panel.is-collapsed .pane > .block{display:none}
+  #panel.is-collapsed .pane[data-pane="build"] > #block-layer{display:flex}
+  #panel.is-collapsed #block-layer > h2,
+  #panel.is-collapsed #block-layer > .tip{display:none}
   #toast{bottom:auto;top:74px}
   #fs-btn{bottom:auto;top:74px;right:12px;width:42px;height:42px}
   .mini canvas{height:140px}
@@ -434,10 +462,15 @@ button{font-family:inherit;color:inherit}
   </header>
 
   <aside id="panel">
+    <button id="panel-handle" class="panel-handle" type="button" aria-expanded="true" aria-label="收合面板">
+      <span class="ph-grip" aria-hidden="true"></span>
+      <span class="ph-text">收合面板</span>
+      <span class="ph-arrow" aria-hidden="true">⌄</span>
+    </button>
 
     <!-- ============ 砌形模式 ============ -->
     <section class="pane" data-pane="build">
-      <div class="block">
+      <div class="block" id="block-layer">
         <h2>🏗️ 層數</h2>
         <div class="layer-bar" id="layer-bar"></div>
         <p class="tip">👆 選擇要砌的層數</p>
@@ -1208,6 +1241,7 @@ function setMode(mode) {
     updateLevelTimer();
   }
   if (mode === 'progress') buildProgressList();
+  requestLayout();   // 切換模式會改變面板高度 → 重算場景可視區
 }
 
 function buildSwatches() {
@@ -1269,7 +1303,10 @@ function snapPitch(dir) {
 }
 
 function resetView() {
-  startCameraAnim({ yaw: 0, pitch: DEFAULT_PITCH, dist: DEFAULT_DIST }, 520);
+  const dist = isMobileLayout()
+    ? clamp(fittedDistance(), distLimits().min, distLimits().max)
+    : DEFAULT_DIST;
+  startCameraAnim({ yaw: 0, pitch: DEFAULT_PITCH, dist }, 520);
 }
 
 function spinOnce() {
@@ -1285,7 +1322,8 @@ function toggleAutoRotate() {
 }
 
 function zoomBy(factor) {
-  view.dist = clamp(view.dist * factor, MIN_DIST, MAX_DIST);
+  const lim = distLimits();
+  view.dist = clamp(view.dist * factor, lim.min, lim.max);
   applyCamera();
 }
 
@@ -1471,6 +1509,7 @@ function updatePlayTimer() {
 const raycaster = new THREE.Raycaster();
 const ndc = new THREE.Vector2();
 const pointers = new Map();
+const handledPointers = new Set();   // 已處理完的指標（避免 pointerup 與 pointercancel 重覆觸發）
 let downX = 0, downY = 0, moved = false, dragging = false;
 let pinchDistance = 0;
 
@@ -1501,7 +1540,9 @@ function maxPickDistance(rect) {
   const d1 = Math.hypot(a.x - b.x, a.y - b.y);
   const d2 = Math.hypot(a.x - c.x, a.y - c.y);
   const spacing = Math.min(d1, d2) || 40;
-  return clamp(spacing * 0.8, 26, 78);
+  // 手機：手指較粗，命中半徑需要放寬；桌面維持接近原本的嚴謹值
+  if (isMobileLayout()) return clamp(spacing * 0.95, 34, 120);
+  return clamp(spacing * 0.85, 28, 84);
 }
 function pickCell(e) {
   pointerToNdc(e);
@@ -1525,7 +1566,8 @@ function pickCell(e) {
 
 function onPointerDown(e) {
   if (e.button !== undefined && e.button !== 0 && e.pointerType === 'mouse') return;
-  canvas.setPointerCapture(e.pointerId);
+  try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* 指標已失效：略過捕捉 */ }
+  handledPointers.delete(e.pointerId);
   pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
   cameraAnim = null;
 
@@ -1598,6 +1640,9 @@ function onPointerMove(e) {
 }
 
 function onPointerUp(e) {
+  e.__cubeHandled = true;             // 標記事件，避免同一個指標被重覆處理
+  if (handledPointers.has(e.pointerId)) return;
+  handledPointers.add(e.pointerId);
   const wasSingle = pointers.size === 1;
   pointers.delete(e.pointerId);
   if (pointers.size < 2) pinchDistance = 0;
@@ -1671,6 +1716,7 @@ window.addEventListener('keydown', (e) => {
 for (const tab of document.querySelectorAll('.tab')) {
   tab.addEventListener('click', () => setMode(tab.dataset.mode));
 }
+$('panel-handle').addEventListener('click', () => togglePanel());
 $('btn-undo').addEventListener('click', undo);
 $('btn-clear').addEventListener('click', clearAll);
 $('btn-yaw-left').addEventListener('click', () => snapYaw(-1));
@@ -2011,7 +2057,7 @@ function buildGallery() {
   const list = levelState.candidates;
   const n = list.length;
   if (!n) return;
-  galleryVertical = window.innerWidth <= 700;   // 手機改為縱向排列，模型可以更大
+  galleryVertical = isMobileLayout() ? camera.aspect < 1 : (window.innerWidth <= 700);   // 窄畫面改為縱向排列，模型可以更大
   const host = $('gallery-labels');
   host.innerHTML = '';
   for (let i = 0; i < n; i++) {
@@ -2068,26 +2114,30 @@ function fitGallery() {
   const aspect = Math.max(camera.aspect, 0.3);
   const tanV = Math.tan((camera.fov * Math.PI / 180) / 2);
   const tanH = tanV * aspect;
-
-  const W = window.innerWidth;
-  const H = window.innerHeight;
-  const isMobile = W <= 880;
-  // 垂直可見範圍（以畫面高度比例計）
-  const topFrac = Math.min(76 / H, 0.14);
-  const bottomFrac = isMobile ? 1 - 0.46 : 1;
-  const visH = Math.max(bottomFrac - topFrac, 0.3);
-  const shiftVFrac = 0.5 - (topFrac + bottomFrac) / 2;
-  // 水平可見範圍
-  const leftFrac = isMobile ? 0 : Math.min(378 / W, 0.42);
-  const visW = Math.max(1 - leftFrac, 0.3);
-  const shiftHFrac = (leftFrac + 1) / 2 - 0.5;
-
-  let dist = Math.max((needW / 2) / (visW * tanH), (needH / 2) / (visH * tanV)) * 1.25;
-  for (let k = 0; k < 3; k++) {
-    const h = Math.abs(shiftHFrac) * 2 * dist * tanH;
-    dist = Math.max(((needW / 2) + h) / (visW * tanH), (needH / 2) / (visH * tanV)) * 1.25;
+  const lim = distLimits();
+  let dist;
+  let shiftHFrac = 0;
+  let shiftVFrac = 0;
+  if (isMobileLayout()) {
+    // 手機：畫布本身就是「頂部列以下、面板以上」的可視範圍，模型直接置中
+    dist = Math.max((needW / 2) / tanH, (needH / 2) / tanV) * 1.2;
+  } else {
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    const topFrac = Math.min(76 / H, 0.14);
+    const bottomFrac = 1;
+    const visH = Math.max(bottomFrac - topFrac, 0.3);
+    shiftVFrac = 0.5 - (topFrac + bottomFrac) / 2;
+    const leftFrac = Math.min(378 / W, 0.42);
+    const visW = Math.max(1 - leftFrac, 0.3);
+    shiftHFrac = (leftFrac + 1) / 2 - 0.5;
+    dist = Math.max((needW / 2) / (visW * tanH), (needH / 2) / (visH * tanV)) * 1.25;
+    for (let k = 0; k < 3; k++) {
+      const h = Math.abs(shiftHFrac) * 2 * dist * tanH;
+      dist = Math.max(((needW / 2) + h) / (visW * tanH), (needH / 2) / (visH * tanV)) * 1.25;
+    }
   }
-  view.dist = clamp(dist, MIN_DIST, MAX_DIST);
+  view.dist = clamp(dist, lim.min, lim.max);
   applyCamera();
   galleryGroup.position.x = shiftHFrac * 2 * view.dist * tanH;
   galleryGroup.position.y = -0.5 + shiftVFrac * 2 * view.dist * tanV;
@@ -2878,20 +2928,187 @@ bindLevelUI();
 buildProgressList();
 
 /* ==========================================================================
-   17. 尺寸與動畫迴圈
+   17. 尺寸、版面與動畫迴圈
    ========================================================================== */
-function onResize() {
-  const w = Math.max(window.innerWidth, 1);
-  const h = Math.max(window.innerHeight, 1);
+const MOBILE_BREAKPOINT = 880;        // 與 CSS 的 @media (max-width:880px) 保持一致
+const FIT_MARGIN = 0.92;              // 格點外框最多佔畫面的 92%（四周留 4% 餘量）
+
+/** 目前是否為手機版面 */
+function isMobileLayout() {
+  return window.matchMedia('(max-width:' + MOBILE_BREAKPOINT + 'px)').matches;
+}
+
+/** 鏡頭距離上下限（桌面沿用原本常數，構圖完全不變） */
+function distLimits() {
+  return isMobileLayout() ? { min: 5.8, max: 30 } : { min: MIN_DIST, max: MAX_DIST };
+}
+
+/**
+ * 場景可視矩形。
+ * 桌面：整個視窗（滿版）。
+ * 手機：頂部列底邊 → 面板頂邊；面板完全消失時 → 頁籤列頂邊。
+ */
+function sceneViewportRect() {
+  const vw = Math.max(window.innerWidth, 1);
+  const vh = Math.max(window.innerHeight, 1);
+  if (!isMobileLayout()) return { left: 0, top: 0, width: vw, height: vh };
+  const topbarEl = $('topbar');
+  const panelEl = $('panel');
+  const tabbarEl = $('tabbar');
+  let top = 0;
+  if (topbarEl) {
+    const tb = topbarEl.getBoundingClientRect();
+    if (tb.height > 0) top = Math.min(tb.bottom, vh * 0.3);
+  }
+  let bottom = vh;
+  const panelRect = panelEl ? panelEl.getBoundingClientRect() : null;
+  if (panelRect && panelRect.height > 1 && panelRect.width > 1) {
+    bottom = Math.min(bottom, panelRect.top);
+  } else if (tabbarEl) {
+    const tr = tabbarEl.getBoundingClientRect();
+    if (tr.height > 0) bottom = Math.min(bottom, tr.top);
+  }
+  return { left: 0, top: Math.max(top, 0), width: vw, height: Math.max(bottom - top, 120) };
+}
+
+/**
+ * 依可視區重設畫布與相機比例。
+ * 桌面維持滿版與原有構圖；手機只讓畫布佔用可視區，下半部不再被面板遮住。
+ */
+function layoutScene() {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-  renderer.setSize(w, h, false);
-  camera.aspect = w / h;
+  if (isMobileLayout()) {
+    const r = sceneViewportRect();
+    canvas.style.left = '0px';
+    canvas.style.top = r.top + 'px';
+    canvas.style.bottom = 'auto';
+    canvas.style.width = r.width + 'px';
+    canvas.style.height = r.height + 'px';
+    renderer.setSize(r.width, r.height, false);
+    camera.aspect = r.width / Math.max(r.height, 1);
+  } else {
+    const w = Math.max(window.innerWidth, 1);
+    const h = Math.max(window.innerHeight, 1);
+    canvas.style.left = '';
+    canvas.style.top = '';
+    canvas.style.bottom = '';
+    canvas.style.width = '';
+    canvas.style.height = '';
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+  }
   camera.updateProjectionMatrix();
+  applyCamera();
+  fitShapeToViewport();
+}
+
+/** 令格點外框（GRID×CELL）在目前角度下完整落入可視區所需的鏡頭距離 */
+function fittedDistance(rect) {
+  const r = rect || sceneViewportRect();
+  const aspect = Math.max(r.width / Math.max(r.height, 1), 0.2);
+  const vFov = (camera.fov * Math.PI) / 180;
+  const box = (GRID * CELL) / 2 + CELL * 0.12;      // 格點外框（含少量餘量）
+  const radius = Math.sqrt(3) * box;
+  const tanV = Math.tan(vFov / 2);
+  const tanH = tanV * aspect;
+  const sinV = Math.sin(vFov / 2);
+  const sinH = tanH / Math.sqrt(1 + tanH * tanH);
+  // 旋轉無關的保守值（外框外接球）：任何角度下外框都不會超出可視區
+  const sphereDist = Math.max(radius / sinV, radius / sinH);
+  // 目前角度下的實際投影：較緊貼畫面，格點可以看得更清楚
+  let d = sphereDist;
+  for (let i = 0; i < 6; i++) {
+    const ext = boxNdcExtent(d);
+    const m = Math.max(ext.x, ext.y);
+    if (!isFinite(m) || m <= 0) break;
+    const next = d * (m / FIT_MARGIN);
+    const done = Math.abs(next - d) < 0.01;
+    d = next;
+    if (done) break;
+  }
+  return Math.max(d, sphereDist * 0.8);
+}
+
+/** 在指定距離下，格點外框在畫面上的投影範圍（NDC，1 = 畫面邊緣） */
+function boxNdcExtent(dist) {
+  const b = (GRID * CELL) / 2 + CELL * 0.12;
+  camera.position.copy(CAM_DIR).multiplyScalar(dist);
+  camera.lookAt(0, 0, 0);
+  camera.updateMatrixWorld(true);
+  worldGroup.updateMatrixWorld(true);
+  const v = new THREE.Vector3();
+  let mx = 0, my = 0;
+  for (const sx of [-1, 1]) {
+    for (const sy of [-1, 1]) {
+      for (const sz of [-1, 1]) {
+        v.set(sx * b, sy * b, sz * b);
+        worldGroup.localToWorld(v);
+        v.project(camera);
+        if (Math.abs(v.x) > mx) mx = Math.abs(v.x);
+        if (Math.abs(v.y) > my) my = Math.abs(v.y);
+      }
+    }
+  }
+  return { x: mx, y: my };
+}
+
+/** 手機版：把格點完整收進可視區；桌面版維持原有構圖不動 */
+function fitShapeToViewport() {
+  if (!isMobileLayout()) return;
+  if (galleryOn()) return;
+  const lim = distLimits();
+  view.dist = clamp(fittedDistance(), lim.min, lim.max);
+  applyCamera();
+}
+
+/* ---------- 手機面板收合／展開 ---------- */
+let panelCollapsed = true;            // 手機預設收合，讓 3D 場景有足夠空間
+
+function applyPanelState() {
+  const mobile = isMobileLayout();
+  const collapsed = mobile && panelCollapsed;
+  const panelEl = $('panel');
+  const handle = $('panel-handle');
+  panelEl.classList.toggle('is-collapsed', collapsed);
+  handle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+  handle.setAttribute('aria-label', collapsed ? '展開面板' : '收合面板');
+  handle.querySelector('.ph-text').textContent = collapsed ? '展開面板' : '收合面板';
+  handle.querySelector('.ph-arrow').textContent = collapsed ? '⌃' : '⌄';
+}
+
+function togglePanel(force) {
+  panelCollapsed = typeof force === 'boolean' ? force : !panelCollapsed;
+  applyPanelState();
+  requestLayout();
+}
+
+/* 版面重算（合併同一帧內的多次請求） */
+let layoutPending = false;
+function requestLayout() {
+  if (layoutPending) return;
+  layoutPending = true;
+  requestAnimationFrame(() => {
+    layoutPending = false;
+    onResize();
+  });
+}
+
+function onResize() {
+  applyPanelState();
+  layoutScene();
   if (state.galleryActive && state.mode === 'level') fitGallery();
 }
 window.addEventListener('resize', onResize);
 window.addEventListener('orientationchange', onResize);
 onResize();
+
+/* 面板／頁籤列尺寸變化（切換模式、面板收合、鍵盤彈出、旋轉螢幕）時自動重算版面 */
+if (typeof ResizeObserver !== 'undefined') {
+  const layoutObserver = new ResizeObserver(() => requestLayout());
+  layoutObserver.observe($('panel'));
+  layoutObserver.observe($('tabbar'));
+  layoutObserver.observe($('topbar'));
+}
 
 let lastTime = performance.now();
 
@@ -3035,6 +3252,49 @@ window.__cubeLab = {
     return JSON.parse(JSON.stringify(settings));
   },
   clearAll() { state.cells = new Map(); state.undoStack = []; rebuildShape(); },
+  undo() { undo(); return state.undoStack.length; },
+  /** 目前版面資訊（場景可視區、面板狀態），供自動測試檢查遮擋情況 */
+  layout() {
+    const cr = canvas.getBoundingClientRect();
+    const pr = $('panel').getBoundingClientRect();
+    const tr = $('tabbar').getBoundingClientRect();
+    const br = $('topbar').getBoundingClientRect();
+    return {
+      mobile: isMobileLayout(),
+      collapsed: isMobileLayout() && panelCollapsed,
+      panelTop: pr.top,
+      panelBottom: pr.bottom,
+      panelHeight: pr.height,
+      panelLeft: pr.left,
+      panelRight: pr.right,
+      tabbarTop: tr.top,
+      topbarBottom: br.bottom,
+      scene: { left: cr.left, top: cr.top, width: cr.width, height: cr.height },
+      viewport: { width: window.innerWidth, height: window.innerHeight },
+      visibleHeightRatio: cr.height / Math.max(window.innerHeight, 1),
+      dist: Math.round(view.dist * 100) / 100,
+      aspect: Math.round(camera.aspect * 100) / 100
+    };
+  },
+  setPanelCollapsed(v) { togglePanel(!!v); return panelCollapsed; },
+  togglePanel() { togglePanel(); return panelCollapsed; },
+  /** 格點外框（GRID×CELL）八個角點的螢幕座標（供測試確認整個格點都在可視區內） */
+  boxScreen() {
+    const b = (GRID * CELL) / 2;
+    const rect = canvas.getBoundingClientRect();
+    const v = new THREE.Vector3();
+    const out = [];
+    for (const sx of [-1, 1]) for (const sy of [-1, 1]) for (const sz of [-1, 1]) {
+      v.set(sx * b, sy * b, sz * b);
+      worldGroup.localToWorld(v);
+      v.project(camera);
+      out.push({
+        x: rect.left + ((v.x + 1) / 2) * rect.width,
+        y: rect.top + ((1 - v.y) / 2) * rect.height
+      });
+    }
+    return out;
+  },
   /** 主場景候選模型狀態 */
   gallery() {
     return {
