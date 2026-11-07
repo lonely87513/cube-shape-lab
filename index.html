@@ -1,0 +1,3093 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-HK">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#0a0d16" />
+<meta name="description" content="Cube Shape Lab：以小正方體組成形狀，並可 360 度旋轉觀察的 3D 原型遊戲" />
+<title>Cube Shape Lab｜小正方體組形實驗室</title>
+<style>
+:root{
+  /* ===== 兒童版主色（淺色鮮豔） ===== */
+  --base:22px;
+  --sky:#8fd8ff;
+  --sky-deep:#3fb9f5;
+  --sun:#ffd24d;
+  --tangerine:#ff8a3d;
+  --grass:#7fd98a;
+  --ink:#28374f;
+  --ink-2:#57688a;
+  --ink-3:#8b9ab3;
+  --card:#ffffff;
+  --card-2:#f2f9ff;
+  --line:rgba(40,55,79,.10);
+  --line-2:rgba(40,55,79,.16);
+  --accent:#ff8a3d;
+  --accent-2:#3fb9f5;
+  --ok:#2fbf62;
+  --bad:#ff5f5f;
+  --warn:#ffb020;
+  --shadow:0 10px 26px rgba(31,64,104,.16);
+  --shadow-lg:0 20px 48px rgba(31,64,104,.24);
+  --r:18px;
+  --r-lg:24px;
+
+  /* ===== 深色玻璃（次要樣式，保留原版變數） ===== */
+  --glass:rgba(14,22,38,.74);
+  --glass-2:rgba(255,255,255,.06);
+  --glass-3:rgba(255,255,255,.13);
+  --stroke:rgba(255,255,255,.10);
+  --stroke-2:rgba(255,255,255,.22);
+  --dtext:#eaf2ff;
+  --dmuted:#9fb3cf;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none !important}
+html{font-size:var(--base);height:100%}
+html,body{height:100%;margin:0;padding:0}
+body{
+  font-family:"PingFang TC","Noto Sans TC","Microsoft JhengHei","Hiragino Sans CNS",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color:var(--ink);
+  background:
+    radial-gradient(1000px 640px at 10% 4%, rgba(255,255,255,.85) 0%, rgba(255,255,255,0) 58%),
+    radial-gradient(900px 620px at 92% 10%, rgba(190,235,255,.9) 0%, rgba(190,235,255,0) 62%),
+    linear-gradient(180deg,#8fd8ff 0%,#bdeaff 24%,#ffeaa0 56%,#ffc182 78%,#a9e6a2 100%);
+  background-attachment:fixed;
+  overflow:hidden;
+  overscroll-behavior:none;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+button{font-family:inherit;color:inherit}
+#stage{position:fixed;inset:0}
+#scene{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#scene.is-dragging{cursor:grabbing}
+
+/* ---------- 頂部列 ---------- */
+#topbar{
+  position:absolute;top:0;left:0;right:0;z-index:6;
+  display:flex;align-items:center;gap:10px;
+  padding:12px 14px;padding-top:calc(12px + env(safe-area-inset-top));
+  pointer-events:none;
+}
+#topbar>*{pointer-events:auto}
+.brand{
+  display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.92);
+  border:2px solid rgba(255,255,255,.85);border-radius:var(--r-lg);padding:8px 16px 8px 8px;
+  box-shadow:var(--shadow);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+}
+.brand .mark{
+  width:42px;height:42px;border-radius:14px;flex:0 0 auto;display:grid;place-items:center;
+  font-size:24px;background:linear-gradient(140deg,#ffe07a,#ff9a45);box-shadow:0 5px 12px rgba(255,154,69,.4);
+}
+.brand h1{margin:0;font-size:.82rem;font-weight:800;letter-spacing:.5px;color:#2a3a52;line-height:1.15;white-space:nowrap}
+.brand p{margin:2px 0 0;font-size:.6rem;color:#7b8aa3;letter-spacing:.3px;white-space:nowrap}
+#mode-tabs{
+  display:flex;gap:6px;background:rgba(255,255,255,.9);border:2px solid rgba(255,255,255,.85);
+  border-radius:var(--r-lg);padding:6px;box-shadow:var(--shadow);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+}
+.tab{
+  appearance:none;border:0;background:transparent;color:#61728c;font-size:.8rem;font-weight:800;
+  padding:10px 16px;border-radius:16px;cursor:pointer;min-height:48px;white-space:nowrap;
+  transition:background .16s ease,color .16s ease,transform .08s ease;
+}
+.tab:hover{background:#eaf6ff}
+.tab:active{transform:translateY(2px)}
+.tab.is-active{background:linear-gradient(140deg,#ffc95e,#ff8a3d);color:#fff;box-shadow:0 5px 12px rgba(255,138,61,.4)}
+.tab:focus-visible{outline:3px solid var(--accent-2);outline-offset:2px}
+.stats{margin-left:auto;display:flex;align-items:center;gap:8px}
+.chip{
+  background:rgba(255,255,255,.92);border:2px solid rgba(255,255,255,.85);border-radius:16px;
+  padding:8px 14px;font-size:.78rem;font-weight:800;color:#3a4a63;box-shadow:var(--shadow);
+  display:inline-flex;align-items:center;gap:6px;white-space:nowrap;
+}
+.chip b{font-size:.95rem;font-variant-numeric:tabular-nums}
+.icon-btn{
+  width:52px;height:52px;border-radius:16px;border:2px solid rgba(255,255,255,.85);
+  background:rgba(255,255,255,.92);font-size:1.25rem;cursor:pointer;box-shadow:var(--shadow);
+  display:grid;place-items:center;transition:transform .1s ease;
+}
+.icon-btn:active{transform:translateY(2px) scale(.96)}
+.icon-btn.is-holding{background:linear-gradient(140deg,#ffc95e,#ff8a3d);color:#fff}
+
+/* ---------- 側邊面板 ---------- */
+#panel{
+  position:absolute;left:14px;top:84px;bottom:14px;width:364px;z-index:5;
+  background:rgba(255,255,255,.93);border:2px solid rgba(255,255,255,.9);border-radius:var(--r-lg);
+  box-shadow:var(--shadow-lg);overflow-y:auto;overscroll-behavior:contain;
+  padding:16px;display:flex;flex-direction:column;gap:14px;
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+}
+#panel::-webkit-scrollbar{width:8px}
+#panel::-webkit-scrollbar-thumb{background:rgba(40,55,79,.18);border-radius:8px}
+#panel::-webkit-scrollbar-track{background:transparent}
+.pane{display:flex;flex-direction:column;gap:14px}
+.pane[hidden]{display:none}
+.block{display:flex;flex-direction:column;gap:10px}
+.block>h2{
+  margin:0;font-size:.66rem;font-weight:800;letter-spacing:1.4px;color:#6b7c95;
+  text-transform:uppercase;display:flex;align-items:center;gap:8px;
+}
+.block>h2::after{content:"";flex:1;height:2px;border-radius:2px;
+  background:linear-gradient(90deg,rgba(40,55,79,.12),rgba(40,55,79,0))}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.card{
+  background:var(--card-2);border:2px solid var(--line);border-radius:var(--r);
+  padding:12px 14px;display:flex;flex-direction:column;gap:6px;
+}
+.card.dark{background:var(--glass);border-color:var(--stroke);color:var(--dtext)}
+.card.dark .row-kv span{color:var(--dmuted)}
+.card .row-kv{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:.76rem}
+.card .row-kv span{color:#6b7c95;letter-spacing:.3px}
+.card .row-kv b{font-variant-numeric:tabular-nums;font-size:.86rem;font-weight:800}
+.card .big{font-size:1.5rem;font-weight:800;font-variant-numeric:tabular-nums;color:var(--accent);line-height:1.1}
+.tip{margin:0;font-size:.68rem;line-height:1.6;color:#7b8aa3;letter-spacing:.2px}
+
+/* ---------- 按鈕 ---------- */
+.btn{
+  appearance:none;border:2px solid var(--line);background:#fff;color:#2f3f57;
+  font-size:.86rem;font-weight:800;letter-spacing:.3px;padding:10px 14px;border-radius:16px;cursor:pointer;
+  min-height:56px;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  box-shadow:0 4px 0 rgba(40,55,79,.10);transition:transform .08s ease,box-shadow .08s ease;
+}
+.btn:hover{border-color:var(--line-2)}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(40,55,79,.10)}
+.btn:focus-visible{outline:3px solid var(--accent-2);outline-offset:2px}
+.btn:disabled{opacity:.42;cursor:not-allowed;transform:none}
+.btn.wide{width:100%}
+.btn.primary{background:linear-gradient(140deg,#ffc95e,#ff8a3d);color:#fff;border-color:rgba(255,138,61,.55);box-shadow:0 4px 0 #dd6f27}
+.btn.blue{background:linear-gradient(140deg,#8fdcff,#3fb9f5);color:#fff;border-color:rgba(63,185,245,.55);box-shadow:0 4px 0 #2a90c4}
+.btn.green{background:linear-gradient(140deg,#a8f0ae,#2fbf62);color:#fff;border-color:rgba(47,191,98,.55);box-shadow:0 4px 0 #269a4e}
+.btn.danger{background:#fff;border-color:rgba(255,95,95,.45);color:#e04848}
+.btn.danger:active{background:#fff2f2}
+
+/* ---------- 顏色選擇 ---------- */
+.swatches{display:flex;gap:8px;flex-wrap:wrap}
+.swatch{
+  width:46px;height:46px;border-radius:14px;border:3px solid transparent;cursor:pointer;padding:0;
+  background:transparent;position:relative;transition:transform .12s ease;
+}
+.swatch i{position:absolute;inset:4px;border-radius:10px;display:block;box-shadow:inset 0 -6px 12px rgba(0,0,0,.16)}
+.swatch:hover{transform:translateY(-3px)}
+.swatch.is-active{border-color:#ff8a3d;box-shadow:0 0 0 4px rgba(255,138,61,.24)}
+.swatch:focus-visible{outline:3px solid var(--accent-2);outline-offset:2px}
+
+/* ---------- 預設形狀 ---------- */
+.presets{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.preset{
+  appearance:none;border:2px solid var(--line);background:#fff;border-radius:16px;
+  padding:10px 12px;font-size:.78rem;font-weight:800;text-align:left;cursor:pointer;color:var(--ink);
+  min-height:56px;display:flex;flex-direction:column;justify-content:center;gap:2px;
+  box-shadow:0 3px 0 rgba(40,55,79,.08);transition:transform .08s ease;
+}
+.preset:hover{border-color:var(--line-2);background:#fbfdff}
+.preset:active{transform:translateY(3px);box-shadow:none}
+.preset small{font-weight:600;color:#8b9ab3;font-size:.62rem}
+.preset:focus-visible{outline:3px solid var(--accent-2);outline-offset:2px}
+
+/* ---------- 層選擇器 ---------- */
+.layer-bar{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.layer-btn{
+  appearance:none;border:2px solid var(--line);background:#fff;border-radius:16px;min-height:58px;
+  font-size:.62rem;font-weight:800;color:#6b7c95;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  box-shadow:0 3px 0 rgba(40,55,79,.08);transition:transform .08s ease;
+}
+.layer-btn b{font-size:1.05rem;color:#2f3f57;line-height:1}
+.layer-btn:active{transform:translateY(3px);box-shadow:none}
+.layer-btn.is-active{background:linear-gradient(140deg,#ffe08a,#ffb44d);border-color:#ff9f43;color:#5b3a10}
+.layer-btn.is-active b{color:#5b3a10}
+.layer-btn.has-cubes::after{content:"●";font-size:.55rem;color:var(--accent-2);line-height:1}
+.layer-btn.is-active.has-cubes::after{color:#5b3a10}
+
+/* ---------- 觀察模式 ---------- */
+.phase-pill{display:inline-flex;align-items:center;gap:7px;font-size:.74rem;font-weight:800;color:var(--accent-2)}
+.phase-pill::before{content:"";width:9px;height:9px;border-radius:50%;background:currentColor}
+.phase-pill[data-phase="memory"]{color:var(--warn)}
+.phase-pill[data-phase="rebuild"]{color:var(--accent-2)}
+.phase-pill[data-phase="solved"]{color:var(--ok)}
+.phase-pill[data-phase="failed"]{color:var(--bad)}
+
+/* ---------- 關卡模式 ---------- */
+.mini{
+  position:relative;background:linear-gradient(180deg,#eaf7ff,#ffffff);
+  border:2px solid var(--line);border-radius:var(--r);overflow:hidden;
+}
+.mini canvas{display:block;width:100%;height:170px;touch-action:none;cursor:grab}
+.mini .tag{
+  position:absolute;top:6px;left:8px;font-size:.62rem;font-weight:800;color:#61728c;
+  background:rgba(255,255,255,.9);border-radius:10px;padding:2px 9px;
+}
+.mini .spin{position:absolute;top:6px;right:8px;font-size:.58rem;color:#9aa9c0}
+.cands{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.candbtn{
+  appearance:none;border:3px solid var(--line);background:#fff;border-radius:16px;min-height:64px;
+  font-size:1.05rem;font-weight:800;color:#3a4a63;cursor:pointer;box-shadow:0 4px 0 rgba(40,55,79,.10);
+  display:flex;align-items:center;justify-content:center;gap:6px;
+}
+.candbtn:active{transform:translateY(3px);box-shadow:none}
+.candbtn.is-right{background:linear-gradient(140deg,#a8f0ae,#2fbf62);color:#fff;border-color:#269a4e}
+.candbtn.is-wrong{background:linear-gradient(140deg,#ff9a9a,#ff5f5f);color:#fff;border-color:#e04848;animation:shake .4s ease}
+#gallery-labels{position:absolute;inset:0;z-index:4;pointer-events:none}
+.glabel{
+  position:absolute;transform:translate(-50%,-50%);background:rgba(255,255,255,.94);
+  border:3px solid #ffb44d;border-radius:16px;padding:6px 18px;font-size:.85rem;font-weight:800;
+  color:#5b3a10;box-shadow:var(--shadow);white-space:nowrap;
+}
+.glabel.is-right{background:linear-gradient(140deg,#a8f0ae,#2fbf62);color:#fff;border-color:#269a4e}
+.glabel.is-wrong{background:linear-gradient(140deg,#ff9a9a,#ff5f5f);color:#fff;border-color:#e04848}
+.cand{
+  position:relative;background:linear-gradient(180deg,#eaf7ff,#ffffff);border:3px solid var(--line);
+  border-radius:var(--r);overflow:hidden;cursor:pointer;transition:transform .1s ease;
+}
+.cand:hover{transform:translateY(-3px)}
+.cand canvas{display:block;width:100%;height:120px;touch-action:none;cursor:grab}
+.cand .tag{
+  position:absolute;top:4px;left:4px;font-size:.62rem;font-weight:800;color:#61728c;
+  background:rgba(255,255,255,.92);border-radius:9px;padding:1px 8px;
+}
+.cand.is-right{border-color:var(--ok);box-shadow:0 0 0 4px rgba(47,191,98,.24)}
+.cand.is-wrong{border-color:var(--bad);animation:shake .4s ease}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
+#lv-proj{
+  width:100%;height:auto;display:block;background:#fff;border:2px solid var(--line);border-radius:var(--r);
+}
+.lvstars{font-size:1.35rem;letter-spacing:3px;line-height:1}
+.lvstars .on{color:#ffb703}
+.lvstars .off{color:#d9e2ee}
+.lvtitle{font-size:.86rem;font-weight:800;color:var(--ink)}
+.lvtype{font-size:.68rem;color:#6b7c95;font-weight:700}
+
+/* ---------- 進度頁 ---------- */
+.phero{
+  background:linear-gradient(140deg,#4fb8ee,#7f6ff0);color:#fff;border-radius:var(--r);
+  padding:16px 18px;display:flex;align-items:center;gap:14px;box-shadow:0 10px 24px rgba(60,110,190,.28);
+}
+.phero .big{font-size:2.1rem;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.phero .lbl{font-size:.68rem;opacity:.9;font-weight:700}
+.plist{display:flex;flex-direction:column;gap:7px}
+.prow{
+  display:flex;align-items:center;gap:9px;background:#fff;border:2px solid var(--line);
+  border-radius:16px;padding:8px 10px;min-height:52px;
+}
+.prow.done{border-color:rgba(47,191,98,.4);background:#f4fff7}
+.prow .no{
+  width:36px;height:36px;border-radius:12px;background:#eef6ff;color:#5a6b85;font-weight:800;
+  display:grid;place-items:center;flex:0 0 auto;font-size:.78rem;
+}
+.prow.done .no{background:linear-gradient(140deg,#9ff0a5,#2fbf62);color:#fff}
+.prow .nm{
+  flex:1;text-align:left;font-size:.76rem;font-weight:800;color:#3a4a63;background:none;border:0;
+  cursor:pointer;padding:0;min-height:40px;
+}
+.prow .nm small{display:block;font-weight:600;color:#9aa9c0;font-size:.58rem}
+.prow .st{font-size:.82rem;letter-spacing:1px;white-space:nowrap}
+.prow .st .on{color:#ffb703}
+.prow .st .off{color:#dde5ef}
+
+/* ---------- 覆蓋層 ---------- */
+#countdown{
+  position:absolute;inset:0;z-index:9;display:none;flex-direction:column;align-items:center;justify-content:center;
+  gap:6px;pointer-events:none;
+}
+#countdown.show{display:flex}
+#countdown .num{
+  font-size:clamp(72px,16vw,150px);font-weight:800;line-height:1;color:#fff;
+  text-shadow:0 6px 26px rgba(255,138,61,.6);font-variant-numeric:tabular-nums;
+}
+#countdown .cap{
+  font-size:.8rem;font-weight:800;color:#3a4a63;background:rgba(255,255,255,.92);border-radius:999px;
+  padding:10px 22px;box-shadow:var(--shadow);
+}
+#modal,#win-modal,#parent-modal{
+  position:absolute;inset:0;z-index:20;display:none;align-items:center;justify-content:center;padding:18px;
+  background:rgba(28,48,78,.36);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);
+}
+#modal.show,#win-modal.show,#parent-modal.show{display:flex}
+.modal-card{
+  width:min(440px,100%);background:#fff;border-radius:28px;padding:24px;
+  box-shadow:var(--shadow-lg);display:flex;flex-direction:column;gap:14px;text-align:center;
+  animation:pop .26s cubic-bezier(.2,1.4,.4,1);max-height:88vh;overflow-y:auto;
+}
+.modal-card.wide{width:min(520px,100%);text-align:left}
+@keyframes pop{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}
+.modal-card h3{margin:0;font-size:1.15rem;font-weight:800;color:var(--ink)}
+.modal-card .sub{font-size:.76rem;color:#6b7c95;line-height:1.8}
+.modal-card .score{font-size:2.2rem;font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums}
+.stars{display:flex;justify-content:center;gap:12px;font-size:3rem;line-height:1}
+.stars span{animation:starPop .55s cubic-bezier(.2,1.6,.4,1) backwards;display:inline-block}
+.stars span:nth-child(2){animation-delay:.14s}
+.stars span:nth-child(3){animation-delay:.28s}
+@keyframes starPop{0%{transform:scale(0) rotate(-40deg);opacity:0}70%{transform:scale(1.25) rotate(8deg)}100%{transform:scale(1) rotate(0);opacity:1}}
+.wincard{font-size:3.2rem;animation:bounce .7s ease infinite}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+#toast{
+  position:absolute;left:50%;bottom:32px;transform:translate(-50%,14px);z-index:22;
+  background:var(--glass);color:var(--dtext);border:1px solid var(--stroke-2);border-radius:16px;
+  padding:13px 22px;font-size:.8rem;font-weight:700;opacity:0;pointer-events:none;
+  transition:opacity .2s ease,transform .2s ease;backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);box-shadow:var(--shadow-lg);max-width:88vw;text-align:center;
+}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#toast.good{border-color:rgba(47,191,98,.55);background:rgba(18,60,38,.86)}
+#toast.bad{border-color:rgba(255,95,95,.55);background:rgba(72,24,24,.86)}
+#fs-btn{
+  position:absolute;right:14px;bottom:14px;z-index:6;width:48px;height:48px;border-radius:16px;
+  background:rgba(255,255,255,.92);border:2px solid rgba(255,255,255,.85);color:var(--ink);
+  cursor:pointer;font-size:1.1rem;box-shadow:var(--shadow);display:none;
+}
+@media (pointer:coarse){#fs-btn{display:block}}
+#fs-btn:focus-visible{outline:3px solid var(--accent-2);outline-offset:2px}
+
+/* ---------- 家長區 ---------- */
+.setlist{display:flex;flex-direction:column;gap:9px}
+.setting{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  background:var(--card-2);border:2px solid var(--line);border-radius:var(--r);padding:11px 14px;
+}
+.setting>span{font-size:.8rem;font-weight:800;color:#3a4a63}
+.seg{display:flex;gap:4px;background:#fff;border:2px solid var(--line);border-radius:14px;padding:4px}
+.seg button{
+  appearance:none;border:0;background:transparent;font-size:.72rem;font-weight:800;color:#6b7c95;
+  padding:8px 12px;border-radius:10px;cursor:pointer;min-height:40px;
+}
+.seg button.is-active{background:linear-gradient(140deg,#ffc95e,#ff8a3d);color:#fff}
+.toggle{
+  appearance:none;border:2px solid var(--line);background:#fff;border-radius:999px;
+  min-width:78px;min-height:44px;padding:6px 14px;font-size:.72rem;font-weight:800;color:#6b7c95;cursor:pointer;
+}
+.toggle.on{background:linear-gradient(140deg,#a8f0ae,#2fbf62);color:#fff;border-color:rgba(47,191,98,.5)}
+.toggle.confirm{background:linear-gradient(140deg,#ff9a9a,#ff5f5f);color:#fff;border-color:rgba(255,95,95,.5)}
+
+/* ---------- 手機版 ---------- */
+#tabbar{
+  display:none;position:absolute;left:0;right:0;bottom:0;z-index:8;
+  background:rgba(255,255,255,.96);border-top:2px solid var(--line);
+  padding:6px 8px calc(6px + env(safe-area-inset-bottom));gap:6px;
+  box-shadow:0 -6px 22px rgba(31,64,104,.14);
+}
+.tabbar-btn{
+  flex:1;min-height:54px;border:0;background:transparent;border-radius:16px;
+  font-size:.6rem;font-weight:800;color:#6b7c95;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+}
+.tabbar-btn i{font-style:normal;font-size:1.3rem;line-height:1}
+.tabbar-btn.is-active{background:linear-gradient(140deg,#ffe08a,#ffb44d);color:#5b3a10}
+@media (max-width:880px){
+  #topbar{gap:8px;padding:8px 10px;padding-top:calc(8px + env(safe-area-inset-top))}
+  #mode-tabs{display:none}
+  #tabbar{display:flex}
+  .brand p{display:none}
+  .brand h1{font-size:.72rem}
+  .brand .mark{width:36px;height:36px;font-size:20px;border-radius:12px}
+  .brand{padding:6px 10px 6px 6px;border-radius:18px}
+  .chip{padding:6px 10px;font-size:.68rem;border-radius:14px}
+  .chip b{font-size:.85rem}
+  .icon-btn{width:44px;height:44px;border-radius:14px;font-size:1.1rem}
+  #panel{
+    left:0;right:0;top:auto;bottom:calc(66px + env(safe-area-inset-bottom));width:auto;max-height:46vh;
+    border-radius:24px 24px 0 0;border-bottom:0;padding:14px 14px 16px;gap:12px;
+  }
+  #toast{bottom:auto;top:74px}
+  #fs-btn{bottom:auto;top:74px;right:12px;width:42px;height:42px}
+  .mini canvas{height:140px}
+  .cand canvas{height:96px}
+}
+@media (max-width:420px){
+  .brand h1{font-size:.64rem}
+  .stats{gap:5px}
+  .chip{padding:5px 8px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms !important;transition-duration:.01ms !important}
+}
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="scene"></canvas>
+  <div id="gallery-labels"></div>
+
+  <header id="topbar">
+    <div class="brand">
+      <div class="mark">🧊</div>
+      <div>
+        <h1>小方塊實驗室</h1>
+        <p>砌出形狀 · 訓練空間感</p>
+      </div>
+    </div>
+    <nav id="mode-tabs" role="tablist" aria-label="模式切換">
+      <button class="tab is-active" data-mode="build" role="tab" aria-selected="true">🧱 砌形</button>
+      <button class="tab" data-mode="observe" role="tab" aria-selected="false">🔍 觀察</button>
+      <button class="tab" data-mode="level" role="tab" aria-selected="false">🎯 關卡</button>
+      <button class="tab" data-mode="progress" role="tab" aria-selected="false">⭐ 進度</button>
+    </nav>
+    <div class="stats">
+      <span class="chip" title="小正方體數量">🧊 <b id="count-value">0</b></span>
+      <span class="chip" title="星星總數">⭐ <b id="star-value">0</b></span>
+      <span class="chip" title="目前關卡">🎯 <b id="level-value">1</b></span>
+      <button id="btn-parent" class="icon-btn" title="家長區（長按 3 秒或連按 5 次）" aria-label="家長區">⚙️</button>
+    </div>
+  </header>
+
+  <aside id="panel">
+
+    <!-- ============ 砌形模式 ============ -->
+    <section class="pane" data-pane="build">
+      <div class="block">
+        <h2>🏗️ 層數</h2>
+        <div class="layer-bar" id="layer-bar"></div>
+        <p class="tip">👆 選擇要砌的層數</p>
+      </div>
+
+      <div class="block">
+        <h2>🎨 顏色</h2>
+        <div class="swatches" id="swatches"></div>
+      </div>
+
+      <div class="block">
+        <h2>🛠️ 動作</h2>
+        <div class="card">
+          <div class="row-kv"><span>已放小正方體</span><b id="build-count">0</b></div>
+          <div class="row-kv"><span>可復原步數</span><b id="undo-count">0</b></div>
+        </div>
+        <div class="grid2">
+          <button class="btn" id="btn-undo">↩️ 復原</button>
+          <button class="btn" id="btn-clear">🗑️ 清空</button>
+        </div>
+        <p class="tip">拖曳畫面可以轉個角度觀看 👀</p>
+      </div>
+
+      <div class="block">
+        <h2>⭐ 形狀庫</h2>
+        <div class="presets" id="presets"></div>
+      </div>
+    </section>
+
+    <!-- ============ 觀察模式 ============ -->
+    <section class="pane" data-pane="observe" hidden>
+      <div class="block">
+        <h2>🔄 轉個角度</h2>
+        <div class="grid2">
+          <button class="btn" id="btn-yaw-left">← 左轉</button>
+          <button class="btn" id="btn-yaw-right">右轉 →</button>
+          <button class="btn" id="btn-pitch-up">↑ 上仰</button>
+          <button class="btn" id="btn-pitch-down">↓ 下俯</button>
+        </div>
+      </div>
+
+      <div class="block">
+        <h2>👀 看清楚</h2>
+        <div class="grid2">
+          <button class="btn" id="btn-reset-view">重設視角</button>
+          <button class="btn" id="btn-auto" aria-pressed="false">自動旋轉</button>
+        </div>
+        <button class="btn wide primary" id="btn-spin-once">⟳ 轉一圈</button>
+      </div>
+
+      <div class="block">
+        <h2>🔍 遠近</h2>
+        <div class="grid2">
+          <button class="btn" id="btn-zoom-out">－ 遠離</button>
+          <button class="btn" id="btn-zoom-in">＋ 靠近</button>
+        </div>
+        <div class="card">
+          <div class="row-kv"><span>距離</span><b id="zoom-value">—</b></div>
+          <div class="row-kv"><span>角度</span><b id="angle-value">—</b></div>
+        </div>
+        <p class="tip">兩隻手指可以放大縮小 📱</p>
+      </div>
+    </section>
+
+    <!-- ============ 關卡模式 ============ -->
+    <section class="pane" data-pane="level" hidden>
+      <div class="block">
+        <h2>🎯 關卡</h2>
+        <div class="card">
+          <div class="row-kv"><span>關卡</span><b id="lv-no">第 1 關</b></div>
+          <div class="row-kv"><span>名字</span><b id="lv-name">兩塊磚</b></div>
+          <div class="row-kv"><span>類型</span><b id="lv-type">照樣搭建</b></div>
+          <div class="row-kv"><span>星星</span><span class="lvstars" id="lv-stars"><span class="off">★</span><span class="off">★</span><span class="off">★</span></span></div>
+          <div class="row-kv"><span>時間</span><b id="lv-time">0 秒</b></div>
+        </div>
+        <div class="grid2">
+          <button class="btn" id="lv-prev">← 上一關</button>
+          <button class="btn" id="lv-next">下一關 →</button>
+        </div>
+      </div>
+
+      <div class="block" id="lv-target-block">
+        <h2>👀 目標</h2>
+        <div class="mini" id="lv-mini"><span class="tag">目標</span><span class="spin">拖曳</span></div>
+        <canvas id="lv-proj" width="360" height="260" hidden></canvas>
+        <p class="tip" id="lv-tip">照住砌出來 ✋</p>
+      </div>
+
+      <div class="block" id="lv-cand-block" hidden>
+        <h2>🔍 選出正確的</h2>
+        <div class="cands" id="lv-cands"></div>
+        <p class="tip" id="lv-cand-tip">拖曳大模型轉動，輕按模型（或按甲乙丙）選擇答案 👆</p>
+      </div>
+
+      <div class="block">
+        <h2>🎮 行動</h2>
+        <button class="btn wide green" id="lv-check">檢查答案 ✅</button>
+        <button class="btn wide blue" id="lv-hint">提示 💡</button>
+        <button class="btn wide" id="lv-clear">清空重建</button>
+        <button class="btn wide primary" id="btn-start">🧠 記憶小挑戰</button>
+      </div>
+
+      <div class="block" id="lv-memory-block" hidden>
+        <h2>🧠 記憶小挑戰</h2>
+        <div class="card">
+          <div class="row-kv"><span>階段</span><span class="phase-pill" id="play-phase" data-phase="idle">待命</span></div>
+          <div class="row-kv"><span>關卡 / 目標顆數</span><b id="play-level">1 / 6</b></div>
+          <div class="row-kv"><span>累積得分</span><b id="play-score">0</b></div>
+          <div class="big" id="play-timer">00.0 秒</div>
+        </div>
+        <div class="grid2">
+          <button class="btn" id="btn-check">檢查答案</button>
+          <button class="btn" id="btn-answer">查看答案</button>
+        </div>
+        <button class="btn wide" id="btn-next" hidden>進入下一關 →</button>
+      </div>
+    </section>
+
+    <!-- ============ 進度頁 ============ -->
+    <section class="pane" data-pane="progress" hidden>
+      <div class="block">
+        <h2>🏅 我的成績</h2>
+        <div class="phero">
+          <div>
+            <div class="big" id="pg-stars">0 ⭐</div>
+            <div class="lbl" id="pg-sub">完成 0 / 20 關</div>
+          </div>
+          <div style="margin-left:auto;font-size:2.6rem">🏆</div>
+        </div>
+      </div>
+      <div class="block">
+        <h2>📋 關卡清單</h2>
+        <div class="plist" id="pg-list"></div>
+      </div>
+      <div class="block">
+        <h2>⌨️ 快速鍵（電腦）</h2>
+        <div class="card">
+          <div class="row-kv"><span>R / Shift+R</span><b>右旋 / 左旋</b></div>
+          <div class="row-kv"><span>A</span><b>自動旋轉</b></div>
+          <div class="row-kv"><span>Space</span><b>轉一圈</b></div>
+          <div class="row-kv"><span>Backspace</span><b>復原一步</b></div>
+          <div class="row-kv"><span>C</span><b>清空全部</b></div>
+        </div>
+      </div>
+    </section>
+  </aside>
+
+  <!-- ============ 手機底部 tab bar ============ -->
+  <nav id="tabbar" aria-label="模式切換">
+    <button class="tabbar-btn is-active" data-mode="build"><i>🧱</i>砌形</button>
+    <button class="tabbar-btn" data-mode="observe"><i>🔍</i>觀察</button>
+    <button class="tabbar-btn" data-mode="level"><i>🎯</i>關卡</button>
+    <button class="tabbar-btn" data-mode="progress"><i>⭐</i>進度</button>
+  </nav>
+
+  <div id="countdown"><div class="num" id="countdown-num">5</div><div class="cap" id="countdown-cap">記住形狀</div></div>
+
+  <div id="modal">
+    <div class="modal-card">
+      <h3 id="modal-title">通過</h3>
+      <div class="score" id="modal-score">0</div>
+      <div class="sub" id="modal-sub"></div>
+      <button class="btn primary wide" id="modal-ok">繼續</button>
+    </div>
+  </div>
+
+  <div id="win-modal">
+    <div class="modal-card">
+      <div class="wincard" id="win-icon">🎉</div>
+      <h3 id="win-title">完成！</h3>
+      <div class="stars" id="win-stars"><span>⭐</span><span>⭐</span><span>⭐</span></div>
+      <div class="sub" id="win-sub"></div>
+      <div class="grid2">
+        <button class="btn" id="win-retry">再玩多次</button>
+        <button class="btn primary" id="win-next">下一關 →</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="parent-modal">
+    <div class="modal-card wide">
+      <h3>👨‍👩‍👧 家長區</h3>
+      <div class="setlist">
+        <div class="setting">
+          <span>格點大小</span>
+          <div class="seg" id="seg-grid">
+            <button data-v="3">3×3</button>
+            <button data-v="4">4×4</button>
+            <button data-v="5">5×5</button>
+          </div>
+        </div>
+        <div class="setting">
+          <span>字級大小</span>
+          <div class="seg" id="seg-font">
+            <button data-v="standard">標準</button>
+            <button data-v="large">大</button>
+            <button data-v="xlarge">特大</button>
+          </div>
+        </div>
+        <div class="setting">
+          <span>限時挑戰（90 秒）</span>
+          <button class="toggle" id="tg-time">關</button>
+        </div>
+        <div class="setting">
+          <span>提示功能</span>
+          <button class="toggle" id="tg-hint">開</button>
+        </div>
+        <div class="setting">
+          <span>音效</span>
+          <button class="toggle" id="tg-sound">開</button>
+        </div>
+        <div class="setting">
+          <span>清除進度（星星同紀錄）</span>
+          <button class="btn danger" id="btn-clear-progress" style="min-height:44px">清除</button>
+        </div>
+      </div>
+      <p class="tip">關閉限時或提示時，每關最多 2 粒星。</p>
+      <button class="btn primary wide" id="parent-close">完成</button>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+  <button id="fs-btn" title="全螢幕" aria-label="切換全螢幕">⛶</button>
+</div>
+
+<script type="module">
+import * as THREE from './assets/vendor/three.module.js';
+
+/* ==========================================================================
+   1. 常數與設定
+   ========================================================================== */
+let GRID = 5;                      // 每邊的格點數量（家長區可調 3 / 4 / 5）
+const CELL = 1.0;                  // 單一格點的邊長
+let HALF_GRID = (GRID - 1) / 2;    // 格點 0 對應的世界座標位移
+const CUBE_SIZE = CELL * 0.94;     // 實體小正方體的邊長
+const CUBE_RADIUS = CELL * 0.13;   // 圓角半徑
+const PICK_SIZE = CELL * 0.76;     // 隱藏拾取盒的邊長（刻意小於實體，確保先命中實體）
+const DRAG_THRESHOLD = 6;          // 判定為拖曳的位移門檻（像素）
+const ROT_SPEED = 0.0092;          // 拖曳旋轉的靈敏度（弧度 / 像素）
+const PITCH_LIMIT = Math.PI / 2;   // 俯仰角上下限，避免翻轉過頭
+const MIN_DIST = 6.2;
+const MAX_DIST = 44;               // 手機縱向排列候選模型時需要較遠的視角
+const DEFAULT_DIST = 11.2;
+const DEFAULT_PITCH = 0.28;
+const AUTO_SPEED = Math.PI / 15;   // 自動旋轉速度（每 15 秒一圈）
+const MEMORY_SECONDS = 5;          // 記憶階段長度
+const HINT_SECONDS = 3.6;          // 查看答案的顯示長度
+const UNDO_LIMIT = 120;            // 復原堆疊上限（需求為至少 20 步）
+
+/* 柔和色盤 */
+const PALETTE = [
+  { name: '珊瑚紅', hex: 0xe2857a },
+  { name: '琥珀黃', hex: 0xe3c078 },
+  { name: '嫩葉綠', hex: 0x8cbd86 },
+  { name: '湖水青', hex: 0x74bfb8 },
+  { name: '天際藍', hex: 0x76a6d8 },
+  { name: '薰衣草', hex: 0xab9adb },
+  { name: '玫瑰粉', hex: 0xdf9fb8 },
+  { name: '沙岩棕', hex: 0xc6b598 }
+];
+const TARGET_COLOR = 0xffd166;     // 記憶階段目標形狀的醒目色
+
+/* ==========================================================================
+   2. 旋轉等價核心
+   下列區塊同時供瀏覽器與獨立測試腳本使用，測試腳本會直接抽取本段程式碼，
+   確保驗證的邏輯與正式實作完全一致。全部採用整數座標運算。
+   ========================================================================== */
+/* === ROTATION-CORE-BEGIN === */
+
+/**
+ * 建立立方體的 24 種旋轉矩陣。
+ * 做法：列出所有 3x3 的置換矩陣與正負號組合（共 48 個），
+ * 篩選出行列式為 +1 者，即為 24 種純旋轉（不含鏡射）。
+ */
+function buildRotationMatrices() {
+  const perms = [];
+  const permute = (arr, cur) => {
+    if (!arr.length) { perms.push(cur.slice()); return; }
+    for (let i = 0; i < arr.length; i++) {
+      const rest = arr.slice(0, i).concat(arr.slice(i + 1));
+      permute(rest, cur.concat(arr[i]));
+    }
+  };
+  permute([0, 1, 2], []);
+
+  const signSets = [];
+  const signs = (cur) => {
+    if (cur.length === 3) { signSets.push(cur.slice()); return; }
+    for (const s of [-1, 1]) signs(cur.concat(s));
+  };
+  signs([]);
+
+  const matrices = [];
+  for (const p of perms) {
+    for (const s of signSets) {
+      // 帶正負號的置換矩陣：第 r 列在第 p[r] 欄的值為 s[r]
+      const m = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+      for (let r = 0; r < 3; r++) m[r][p[r]] = s[r];
+      const det =
+        m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]) -
+        m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]) +
+        m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]);
+      if (det === 1) matrices.push(m);
+    }
+  }
+  return matrices;
+}
+
+const ROTATION_MATRICES = buildRotationMatrices();
+
+/** 以整數矩陣旋轉整數座標點 */
+function rotatePoint(x, y, z, m) {
+  return [
+    m[0][0] * x + m[0][1] * y + m[0][2] * z,
+    m[1][0] * x + m[1][1] * y + m[1][2] * z,
+    m[2][0] * x + m[2][1] * y + m[2][2] * z
+  ];
+}
+
+/**
+ * 形狀簽章：以「重心 × 顆數」為原點的整數座標集合。
+ *
+ * 為何不用各軸最小值：各軸最小值平移後雖然不變，
+ * 但旋轉會把「軸向最小值」對應到不同的角點，兩者並不互相對應，
+ * 因此以最小值歸一化會令等價判斷失效。
+ *
+ * 本簽章具備兩項性質：
+ *   1. 平移不變：n(p + t) - (sum + n·t) = n·p - sum
+ *   2. 旋轉相容：旋轉為線性映射，sum(rotate(p)) = rotate(sum(p))，
+ *      故 rotate(n·p - sum) 恰為旋轉後形狀的簽章
+ * 兩項性質合併後，等價判定即為「存在一種 24 旋轉使兩者完全重疊」。
+ */
+function shapeSignature(cellMap) {
+  const n = cellMap.size;
+  if (n === 0) return { n: 0, points: [] };
+  let sumX = 0, sumY = 0, sumZ = 0;
+  for (const c of cellMap.values()) { sumX += c.x; sumY += c.y; sumZ += c.z; }
+  const points = [];
+  for (const c of cellMap.values()) {
+    points.push({
+      x: n * c.x - sumX,
+      y: n * c.y - sumY,
+      z: n * c.z - sumZ,
+      color: c.color | 0
+    });
+  }
+  points.sort((a, b) => (a.x - b.x) || (a.y - b.y) || (a.z - b.z));
+  return { n, points };
+}
+
+/**
+ * 判斷兩個形狀是否等價。
+ * 等價定義：允許整體平移，以及 24 種立方體旋轉中的任一種，
+ * 使兩者完全重疊（含顏色對應）。全程使用整數運算，無浮點容差。
+ */
+function cellsEquivalent(mapA, mapB) {
+  if (mapA.size !== mapB.size) return false;
+  if (mapA.size === 0) return true;
+  const a = shapeSignature(mapA);
+  const b = shapeSignature(mapB);
+  const bIndex = new Map();
+  for (const p of b.points) bIndex.set(p.x + ',' + p.y + ',' + p.z, p.color);
+  for (const m of ROTATION_MATRICES) {
+    let match = true;
+    for (const p of a.points) {
+      const r = rotatePoint(p.x, p.y, p.z, m);
+      const color = bIndex.get(r[0] + ',' + r[1] + ',' + r[2]);
+      if (color === undefined || color !== p.color) { match = false; break; }
+    }
+    if (match) return true;
+  }
+  return false;
+}
+
+/**
+ * 忽略顏色的形狀等價判定。
+ * 兒童關卡中，小朋友可以自由選色，因此等價判定只看幾何形狀。
+ * 同樣全程使用整數運算，無浮點容差。
+ */
+function cellsEquivalentShape(mapA, mapB) {
+  if (mapA.size !== mapB.size) return false;
+  if (mapA.size === 0) return true;
+  const a = shapeSignature(mapA);
+  const b = shapeSignature(mapB);
+  const bIndex = new Set();
+  for (const p of b.points) bIndex.add(p.x + ',' + p.y + ',' + p.z);
+  for (const m of ROTATION_MATRICES) {
+    let match = true;
+    for (const p of a.points) {
+      const r = rotatePoint(p.x, p.y, p.z, m);
+      if (!bIndex.has(r[0] + ',' + r[1] + ',' + r[2])) { match = false; break; }
+    }
+    if (match) return true;
+  }
+  return false;
+}
+
+/* === ROTATION-CORE-END === */
+
+/* ==========================================================================
+   3. 通用工具
+   ========================================================================== */
+const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi);
+const lerp = (a, b, t) => a + (b - a) * t;
+const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+const cellKey = (x, y, z) => x + ',' + y + ',' + z;
+const inBounds = (x, y, z) => x >= 0 && x < GRID && y >= 0 && y < GRID && z >= 0 && z < GRID;
+const cellWorld = (x, y, z) => new THREE.Vector3((x - HALF_GRID) * CELL, (y - HALF_GRID) * CELL, (z - HALF_GRID) * CELL);
+
+/* ==========================================================================
+   4. DOM 參照
+   ========================================================================== */
+const $ = (id) => document.getElementById(id);
+const canvas = $('scene');
+const panel = $('panel');
+const countValue = $('count-value');
+const buildCount = $('build-count');
+const undoCount = $('undo-count');
+const playPhaseEl = $('play-phase');
+const playLevelEl = $('play-level');
+const playScoreEl = $('play-score');
+const playTimerEl = $('play-timer');
+const zoomValue = $('zoom-value');
+const angleValue = $('angle-value');
+const toastEl = $('toast');
+const countdownEl = $('countdown');
+const countdownNum = $('countdown-num');
+const countdownCap = $('countdown-cap');
+const modalEl = $('modal');
+
+/* ==========================================================================
+   5. 狀態
+   ========================================================================== */
+const state = {
+  mode: 'build',            // build | observe | level | progress
+  cells: new Map(),         // key -> {x,y,z,color}
+  undoStack: [],
+  selectedColor: 0,
+  hover: null,
+  layer: 0,                 // 目前編輯的層（y 軸，0 = 最底層）
+  memoryActive: false,      // 記憶小挑戰是否進行中
+  galleryActive: false       // 心理旋轉：主場景顯示候選模型
+};
+
+const view = {
+  yaw: 0,
+  pitch: DEFAULT_PITCH,
+  dist: DEFAULT_DIST,
+  vYaw: 0,
+  vPitch: 0,
+  autoRotate: false
+};
+
+const play = {
+  phase: 'idle',            // idle | memory | rebuild | solved | failed
+  target: new Map(),
+  level: 1,
+  score: 0,
+  hints: 0,
+  startedAt: 0,
+  elapsed: 0,
+  running: false,
+  targetCount: 0,
+  colorGroups: 1
+};
+
+/* 目前播放中的鏡頭動畫（吸附 / 轉一圈 / 重設視角） */
+let cameraAnim = null;
+
+/* ==========================================================================
+   6. Three.js 場景
+   ========================================================================== */
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
+renderer.setClearColor(0x000000, 0);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+scene.fog = null;
+
+const camera = new THREE.PerspectiveCamera(46, 1, 0.1, 200);
+const CAM_DIR = new THREE.Vector3(0, 0.22, 1).normalize();
+function applyCamera() {
+  camera.position.copy(CAM_DIR).multiplyScalar(view.dist);
+  camera.lookAt(0, 0, 0);
+}
+applyCamera();
+
+/* 光照：半球光提供環境亮度，方向光提供主要明暗與陰影 */
+scene.add(new THREE.HemisphereLight(0xffffff, 0xbcd9f2, 1.25));
+scene.add(new THREE.AmbientLight(0xffffff, 0.30));
+
+const keyLight = new THREE.DirectionalLight(0xffffff, 1.75);
+keyLight.position.set(6, 11, 8);
+keyLight.castShadow = true;
+keyLight.shadow.mapSize.set(1024, 1024);
+keyLight.shadow.camera.left = -8;
+keyLight.shadow.camera.right = 8;
+keyLight.shadow.camera.top = 8;
+keyLight.shadow.camera.bottom = -8;
+keyLight.shadow.camera.near = 1;
+keyLight.shadow.camera.far = 40;
+keyLight.shadow.bias = -0.0006;
+keyLight.shadow.normalBias = 0.025;
+scene.add(keyLight);
+scene.add(keyLight.target);
+
+const rimLight = new THREE.DirectionalLight(0x7fa8ff, 0.55);
+rimLight.position.set(-7, 3, -6);
+scene.add(rimLight);
+
+const fillLight = new THREE.DirectionalLight(0xffd9a8, 0.32);
+fillLight.position.set(-2, -4, 5);
+scene.add(fillLight);
+
+/* 會隨旋轉移動的群組（形狀、格點、拾取盒都放在此群組內） */
+const worldGroup = new THREE.Group();
+scene.add(worldGroup);
+
+/* 玩家形狀群組 */
+const shapeGroup = new THREE.Group();
+worldGroup.add(shapeGroup);
+
+/* 目標形狀群組（記憶階段顯示） */
+const targetGroup = new THREE.Group();
+worldGroup.add(targetGroup);
+
+/* 靜態地面（提供空間參考與投影） */
+const groundGroup = new THREE.Group();
+scene.add(groundGroup);
+
+const groundPlane = new THREE.Mesh(
+  new THREE.PlaneGeometry(40, 40),
+  new THREE.ShadowMaterial({ opacity: 0.14 })
+);
+groundPlane.rotation.x = -Math.PI / 2;
+groundPlane.position.y = -3.4;
+groundPlane.receiveShadow = true;
+groundGroup.add(groundPlane);
+
+/* ==========================================================================
+   7. 幾何與材質
+   ========================================================================== */
+/**
+ * 建立圓角方體幾何。
+ * 以球面方向參數化，映射到「方盒與球的 Minkowski 和」，
+ * 即半徑 radius 的圓角方盒，頂點法線即為球面方向。
+ */
+function createRoundedCubeGeometry(size, radius, widthSeg = 20, heightSeg = 14) {
+  const geo = new THREE.SphereGeometry(1, widthSeg, heightSeg);
+  const pos = geo.attributes.position;
+  const colors = new Float32Array(pos.count * 3);
+  const halfSize = size / 2;
+  const inner = Math.max(halfSize - radius, 1e-4);
+  const d = new THREE.Vector3();
+  for (let i = 0; i < pos.count; i++) {
+    d.fromBufferAttribute(pos, i).normalize();
+    const m = Math.max(Math.abs(d.x), Math.abs(d.y), Math.abs(d.z)) || 1;
+    const t = radius + inner / m;
+    pos.setXYZ(i, d.x * t, d.y * t, d.z * t);
+    // 頂面略亮、底面略暗，令旋轉時更容易辨識立體感
+    const shade = 0.85 + 0.2 * (d.y * 0.5 + 0.5);
+    colors[i * 3] = shade; colors[i * 3 + 1] = shade; colors[i * 3 + 2] = shade;
+  }
+  pos.needsUpdate = true;
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  geo.computeBoundingSphere();
+  return geo;
+}
+
+const cubeGeometry = createRoundedCubeGeometry(CUBE_SIZE, CUBE_RADIUS);
+
+/* 每個色盤項目一份材質，共享同一份幾何 */
+const cubeMaterials = PALETTE.map((p) => new THREE.MeshStandardMaterial({
+  color: p.hex, vertexColors: true, roughness: 0.52, metalness: 0.06
+}));
+const targetMaterial = new THREE.MeshStandardMaterial({
+  color: TARGET_COLOR, vertexColors: true, roughness: 0.4, metalness: 0.05,
+  emissive: new THREE.Color(TARGET_COLOR).multiplyScalar(0.22)
+});
+
+/* 隱藏拾取盒：每一層一組，只會命中當前層（避免被其他層遮擋而選錯格） */
+const pickGeometry = new THREE.BoxGeometry(PICK_SIZE, PICK_SIZE, PICK_SIZE);
+const pickMaterial = new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false });
+let pickMeshes = [];
+let pickIndex = new Map();        // cellKey -> mesh
+let pickMeshesByLayer = [];       // 每層一組拾取盒
+
+/* 游標指向的格點高亮框 */
+const hoverBox = new THREE.LineSegments(
+  new THREE.EdgesGeometry(new THREE.BoxGeometry(CELL * 0.92, CELL * 0.92, CELL * 0.92)),
+  new THREE.LineBasicMaterial({ color: 0x8fe6ff, transparent: true, opacity: 0.95 })
+);
+hoverBox.visible = false;
+worldGroup.add(hoverBox);
+
+/* ==========================================================================
+   8. 形狀重建
+   ========================================================================== */
+function rebuildShape() {
+  while (shapeGroup.children.length) {
+    const c = shapeGroup.children.pop();
+    shapeGroup.remove(c);
+  }
+  while (ghostGroup.children.length) {
+    const c = ghostGroup.children.pop();
+    ghostGroup.remove(c);
+  }
+  for (const cell of state.cells.values()) {
+    if (cell.y === state.layer) {
+      // 當前層：實心小正方體
+      const mesh = new THREE.Mesh(cubeGeometry, cubeMaterials[cell.color % cubeMaterials.length]);
+      mesh.position.copy(cellWorld(cell.x, cell.y, cell.z));
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      mesh.userData.cell = cell;
+      shapeGroup.add(mesh);
+    } else {
+      // 其他層：保留顯示，但以半透明輪廓呈現
+      const line = new THREE.LineSegments(ghostGeometry, ghostMaterial);
+      line.position.copy(cellWorld(cell.x, cell.y, cell.z));
+      line.userData.cell = cell;
+      ghostGroup.add(line);
+    }
+  }
+  updateCounts();
+}
+
+function rebuildTarget() {
+  while (targetGroup.children.length) targetGroup.remove(targetGroup.children[0]);
+  for (const cell of play.target.values()) {
+    const mesh = new THREE.Mesh(cubeGeometry, targetMaterial);
+    mesh.position.copy(cellWorld(cell.x, cell.y, cell.z));
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    targetGroup.add(mesh);
+  }
+}
+
+function updateCounts() {
+  const n = state.cells.size;
+  countValue.textContent = String(n);
+  buildCount.textContent = String(n);
+  undoCount.textContent = String(Math.min(state.undoStack.length, UNDO_LIMIT));
+  updateLayerBar();
+}
+
+/* ==========================================================================
+   9. 編輯操作
+   ========================================================================== */
+function pushUndo(action) {
+  state.undoStack.push(action);
+  if (state.undoStack.length > UNDO_LIMIT) state.undoStack.shift();
+}
+
+function placeCell(x, y, z, color) {
+  const key = cellKey(x, y, z);
+  if (state.cells.has(key)) return false;
+  state.cells.set(key, { x, y, z, color });
+  pushUndo({ type: 'add', key, cell: { x, y, z, color } });
+  rebuildShape();
+  sfx.place();
+  return true;
+}
+
+function removeCell(x, y, z) {
+  const key = cellKey(x, y, z);
+  const cell = state.cells.get(key);
+  if (!cell) return false;
+  state.cells.delete(key);
+  pushUndo({ type: 'remove', key, cell });
+  rebuildShape();
+  sfx.remove();
+  return true;
+}
+
+function undo() {
+  const action = state.undoStack.pop();
+  if (!action) { showToast('沒有可復原的步驟', ''); return; }
+  if (action.type === 'add') {
+    state.cells.delete(action.key);
+  } else if (action.type === 'remove') {
+    state.cells.set(action.key, action.cell);
+  } else if (action.type === 'clear') {
+    state.cells = action.snapshot;
+  }
+  rebuildShape();
+  showToast('已復原一步', '');
+}
+
+function clearAll() {
+  if (state.cells.size === 0) { showToast('目前沒有任何小正方體', ''); return; }
+  pushUndo({ type: 'clear', snapshot: new Map(state.cells) });
+  state.cells = new Map();
+  rebuildShape();
+  showToast('已清空所有小正方體', '');
+}
+
+function toggleCell(x, y, z) {
+  if (y !== state.layer) return;          // 只可以在目前層放置或移除
+  const key = cellKey(x, y, z);
+  if (state.cells.has(key)) {
+    removeCell(x, y, z);
+  } else {
+    placeCell(x, y, z, state.selectedColor);
+  }
+}
+
+/* ==========================================================================
+   10. 預設形狀
+   ========================================================================== */
+const PRESETS = [
+  { name: '小拐角', note: '三塊砌成個角', cells: [[2, 2, 2], [2, 3, 2], [2, 2, 3]], color: 0 },
+  { name: '大彎角', note: '四塊 L 形', cells: [[1, 2, 2], [1, 3, 2], [1, 4, 2], [2, 4, 2]], color: 1 },
+  { name: 'T 字', note: '三橫一豎', cells: [[1, 2, 2], [2, 2, 2], [3, 2, 2], [2, 3, 2]], color: 2 },
+  { name: 'Z 字', note: '斜斜排列', cells: [[1, 2, 2], [2, 2, 2], [2, 3, 2], [3, 3, 2]], color: 3 },
+  { name: '小樓梯', note: '一級一級', cells: [[1, 1, 2], [1, 2, 2], [2, 2, 2], [2, 3, 2]], color: 4 },
+  { name: '小椅子', note: '像椅子的形狀', cells: [[1, 1, 2], [2, 1, 2], [1, 2, 2], [2, 1, 3]], color: 5 },
+  { name: '大十字', note: '六面伸出', cells: [[2, 1, 2], [1, 2, 2], [2, 2, 2], [3, 2, 2], [2, 2, 1], [2, 2, 3]], color: 6 },
+  { name: '樓梯', note: '六級高', cells: [[0, 0, 2], [1, 0, 2], [1, 1, 2], [2, 1, 2], [2, 2, 2], [3, 2, 2]], color: 7 },
+  { name: 'U 形橋', note: '五塊 U 形', cells: [[1, 1, 2], [2, 1, 2], [3, 1, 2], [1, 2, 2], [3, 2, 2]], color: 3 },
+  { name: 'H 形橋', note: '七塊 H 形', cells: [[1, 1, 2], [1, 2, 2], [1, 3, 2], [3, 1, 2], [3, 2, 2], [3, 3, 2], [2, 2, 2]], color: 5 },
+  { name: '高塔', note: '五層高柱', cells: [[2, 2, 0], [2, 2, 1], [2, 2, 2], [2, 2, 3], [2, 2, 4]], color: 4 }
+];
+
+function loadPreset(preset) {
+  state.cells = new Map();
+  state.undoStack = [];
+  for (const [x, y, z] of preset.cells) {
+    state.cells.set(cellKey(x, y, z), { x, y, z, color: preset.color });
+  }
+  rebuildShape();
+  showToast('已載入預設形狀：' + preset.name, 'good');
+}
+
+/* ==========================================================================
+   11. 介面更新
+   ========================================================================== */
+function showToast(text, kind) {
+  toastEl.textContent = text;
+  toastEl.className = kind ? kind : '';
+  toastEl.classList.add('show');
+  clearTimeout(showToast._timer);
+  showToast._timer = setTimeout(() => toastEl.classList.remove('show'), 1900);
+}
+
+function setMode(mode) {
+  if (mode === 'play') mode = 'level';
+  state.mode = mode;
+  for (const tab of document.querySelectorAll('.tab')) {
+    const active = tab.dataset.mode === mode;
+    tab.classList.toggle('is-active', active);
+    tab.setAttribute('aria-selected', active ? 'true' : 'false');
+  }
+  for (const btn of document.querySelectorAll('.tabbar-btn')) {
+    btn.classList.toggle('is-active', btn.dataset.mode === mode);
+  }
+  for (const pane of document.querySelectorAll('.pane')) {
+    pane.hidden = pane.dataset.pane !== mode;
+  }
+  $('lv-memory-block').hidden = !state.memoryActive;
+  const showGallery = state.galleryActive && mode === 'level';
+  galleryGroup.visible = showGallery;
+  $('gallery-labels').hidden = !showGallery;
+  if (mode === 'level') {
+    updateLevelUI();
+    updateLevelTimer();
+  }
+  if (mode === 'progress') buildProgressList();
+}
+
+function buildSwatches() {
+  const wrap = $('swatches');
+  wrap.innerHTML = '';
+  PALETTE.forEach((p, i) => {
+    const b = document.createElement('button');
+    b.className = 'swatch' + (i === state.selectedColor ? ' is-active' : '');
+    b.setAttribute('aria-label', '選擇顏色：' + p.name);
+    b.title = p.name;
+    const hex = '#' + p.hex.toString(16).padStart(6, '0');
+    b.innerHTML = '<i style="background:' + hex + '"></i>';
+    b.addEventListener('click', () => {
+      state.selectedColor = i;
+      wrap.querySelectorAll('.swatch').forEach((el, idx) => el.classList.toggle('is-active', idx === i));
+    });
+    wrap.appendChild(b);
+  });
+}
+
+function buildPresets() {
+  const wrap = $('presets');
+  wrap.innerHTML = '';
+  for (const preset of PRESETS) {
+    const b = document.createElement('button');
+    b.className = 'preset';
+    b.innerHTML = preset.name + '<small>' + preset.note + ' · ' + preset.cells.length + ' 塊</small>';
+    b.addEventListener('click', () => loadPreset(preset));
+    wrap.appendChild(b);
+  }
+}
+
+/* ==========================================================================
+   12. 觀察模式控制
+   ========================================================================== */
+function startCameraAnim(target, duration) {
+  cameraAnim = {
+    from: { yaw: view.yaw, pitch: view.pitch, dist: view.dist },
+    to: target,
+    start: performance.now(),
+    dur: duration
+  };
+  view.vYaw = 0;
+  view.vPitch = 0;
+}
+
+function snapYaw(dir) {
+  const step = Math.PI / 2;
+  const cur = view.yaw;
+  const target = dir > 0
+    ? (Math.floor(cur / step + 1e-6) + 1) * step
+    : (Math.ceil(cur / step - 1e-6) - 1) * step;
+  startCameraAnim({ yaw: target, pitch: view.pitch, dist: view.dist }, 420);
+}
+
+function snapPitch(dir) {
+  const target = dir > 0 ? PITCH_LIMIT : -PITCH_LIMIT;
+  startCameraAnim({ yaw: view.yaw, pitch: target, dist: view.dist }, 420);
+}
+
+function resetView() {
+  startCameraAnim({ yaw: 0, pitch: DEFAULT_PITCH, dist: DEFAULT_DIST }, 520);
+}
+
+function spinOnce() {
+  startCameraAnim({ yaw: view.yaw + Math.PI * 2, pitch: view.pitch, dist: view.dist }, 2800);
+}
+
+function toggleAutoRotate() {
+  view.autoRotate = !view.autoRotate;
+  const btn = $('btn-auto');
+  btn.classList.toggle('on', view.autoRotate);
+  btn.setAttribute('aria-pressed', view.autoRotate ? 'true' : 'false');
+  btn.textContent = view.autoRotate ? '自動旋轉：開啟' : '自動旋轉';
+}
+
+function zoomBy(factor) {
+  view.dist = clamp(view.dist * factor, MIN_DIST, MAX_DIST);
+  applyCamera();
+}
+
+function updateAngleReadout() {
+  zoomValue.textContent = view.dist.toFixed(1);
+  const yawDeg = ((view.yaw * 180 / Math.PI) % 360 + 360) % 360;
+  const pitchDeg = view.pitch * 180 / Math.PI;
+  angleValue.textContent = yawDeg.toFixed(0) + '° / ' + pitchDeg.toFixed(0) + '°';
+}
+
+/* ==========================================================================
+   13. 遊戲模式
+   ========================================================================== */
+function randomInt(n) { return Math.floor(Math.random() * n); }
+
+function generateTarget(count, colorGroups) {
+  const cells = new Map();
+  // 記憶小挑戰：形狀固定在同一層，方便小朋友一次過砌出來
+  const dirs = [[1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1]];
+  const start = [randomInt(GRID), 1, randomInt(GRID)];
+  cells.set(cellKey(start[0], start[1], start[2]), { x: start[0], y: start[1], z: start[2], color: 0 });
+  const order = [{ x: start[0], y: start[1], z: start[2] }];
+
+  while (cells.size < count) {
+    // 多數情況從最近加入的細胞延伸，令形狀較為緊湊
+    const useRecent = Math.random() < 0.72;
+    const pool = useRecent ? order.slice(-2) : Array.from(cells.values());
+    const base = pool[randomInt(pool.length)];
+    const d = dirs[randomInt(dirs.length)];
+    const nx = base.x + d[0], ny = base.y + d[1], nz = base.z + d[2];
+    if (!inBounds(nx, ny, nz)) continue;
+    const key = cellKey(nx, ny, nz);
+    if (cells.has(key)) continue;
+    const cell = { x: nx, y: ny, z: nz, color: 0 };
+    cells.set(key, cell);
+    order.push(cell);
+  }
+
+  if (colorGroups > 1) {
+    const list = Array.from(cells.values());
+    // 隨機分配顏色，並確保每一組至少有一顆
+    const groups = Array.from({ length: colorGroups }, () => []);
+    list.forEach((c, i) => groups[i % colorGroups].push(c));
+    groups.forEach((g, gi) => g.forEach((c) => { c.color = gi; }));
+  }
+  return cells;
+}
+
+function levelTargetSpec(level) {
+  const count = Math.min(4 + (level - 1), 7);   // 兒童版：每次只記 4 至 7 塊
+  const colorGroups = 1;
+  return { count, colorGroups };
+}
+
+function setPhase(phase, label) {
+  play.phase = phase;
+  playPhaseEl.dataset.phase = phase;
+  playPhaseEl.textContent = label;
+}
+
+function updatePlayPanel() {
+  const spec = levelTargetSpec(play.level);
+  playLevelEl.textContent = play.level + ' / ' + spec.count;
+  playScoreEl.textContent = String(play.score);
+  $('btn-next').hidden = !(play.phase === 'solved' || play.phase === 'failed');
+  $('btn-check').disabled = play.phase !== 'rebuild';
+  $('btn-answer').disabled = play.phase !== 'rebuild' && play.phase !== 'failed';
+}
+
+function startRound() {
+  const spec = levelTargetSpec(play.level);
+  play.targetCount = spec.count;
+  play.colorGroups = spec.colorGroups;
+  play.target = generateTarget(spec.count, spec.colorGroups);
+  play.hints = 0;
+  play.elapsed = 0;
+  play.running = false;
+
+  // 清空玩家的建置，進入記憶階段
+  state.cells = new Map();
+  state.undoStack = [];
+  rebuildShape();
+
+  rebuildTarget();
+  targetGroup.visible = true;
+
+  setPhase('memory', '記憶階段');
+  updatePlayPanel();
+
+  let remain = MEMORY_SECONDS;
+  countdownNum.textContent = String(remain);
+  countdownCap.textContent = '記住形狀 · ' + remain + ' 秒';
+  countdownEl.classList.add('show');
+
+  clearInterval(play.timer);
+  play.timer = setInterval(() => {
+    remain--;
+    if (remain > 0) {
+      countdownNum.textContent = String(remain);
+      countdownCap.textContent = '記住形狀 · ' + remain + ' 秒';
+    } else {
+      clearInterval(play.timer);
+      countdownEl.classList.remove('show');
+      targetGroup.visible = false;
+      setPhase('rebuild', '重建階段');
+      play.startedAt = performance.now();
+      play.running = true;
+      updatePlayPanel();
+      setLayer(1);
+      showToast('收起了，砌出來吧！', 'good');
+    }
+  }, 1000);
+}
+
+function checkAnswer() {
+  if (play.phase !== 'rebuild') return;
+  const ok = cellsEquivalentShape(stripColors(state.cells), play.target);
+  if (ok) {
+    const seconds = play.elapsed;
+    const gained = Math.max(100, 1000 + play.level * 200 - Math.floor(seconds) * 15 - play.hints * 400);
+    play.score += gained;
+    play.running = false;
+    setPhase('solved', '通過');
+    updatePlayPanel();
+    showModal('通過', gained,
+      '用時 ' + seconds.toFixed(1) + ' 秒 · 目標 ' + play.targetCount + ' 塊 · 提示 ' + play.hints + ' 次<br>累積得分 ' + play.score,
+      '進入下一關');
+  } else {
+    play.running = false;
+    setPhase('failed', '未通過');
+    updatePlayPanel();
+    showModal('還差一點', 0,
+      '與目標不一樣，再試一次 💪',
+      '再試一次');
+  }
+}
+
+function showAnswer() {
+  if (play.phase !== 'rebuild' && play.phase !== 'failed') return;
+  play.hints++;
+  play.running = false;
+  const saved = new Map(state.cells);
+  state.cells = new Map();
+  rebuildShape();
+  targetGroup.visible = true;
+  setPhase('memory', '答案展示');
+  updatePlayPanel();
+  showToast('顯示答案 ' + HINT_SECONDS + ' 秒', '');
+  setTimeout(() => {
+    targetGroup.visible = false;
+    state.cells = saved;
+    rebuildShape();
+    setPhase('rebuild', '重建階段');
+    play.startedAt = performance.now();
+    play.elapsed = play.elapsed || 0;
+    play.running = true;
+    updatePlayPanel();
+  }, HINT_SECONDS * 1000);
+}
+
+function nextRound() {
+  play.level++;
+  startRound();
+}
+
+function showModal(title, score, sub, btnText) {
+  $('modal-title').textContent = title;
+  $('modal-score').textContent = score > 0 ? String(score) : '';
+  $('modal-score').style.display = score > 0 ? '' : 'none';
+  $('modal-sub').innerHTML = sub;
+  $('modal-ok').textContent = btnText;
+  modalEl.classList.add('show');
+}
+
+function updatePlayTimer() {
+  if (play.running) play.elapsed = (performance.now() - play.startedAt) / 1000;
+  playTimerEl.textContent = play.elapsed.toFixed(1) + ' 秒';
+}
+
+/* ==========================================================================
+   14. 指標事件（滑鼠與觸控共用）
+   ========================================================================== */
+const raycaster = new THREE.Raycaster();
+const ndc = new THREE.Vector2();
+const pointers = new Map();
+let downX = 0, downY = 0, moved = false, dragging = false;
+let pinchDistance = 0;
+
+function pointerToNdc(e) {
+  const rect = canvas.getBoundingClientRect();
+  ndc.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  ndc.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+}
+
+/**
+ * 選取格點（分層版）。
+ * 只在「目前層」的拾取盒與實心方塊中挑選，並以「螢幕上距離點擊位置最近」為準，
+ * 從此不會被其他層的方塊遮擋而選錯格子。
+ */
+function projectCellCenter(cell, rect) {
+  const v = cellWorld(cell.x, cell.y, cell.z);
+  worldGroup.localToWorld(v);
+  v.project(camera);
+  return {
+    x: rect.left + ((v.x + 1) / 2) * rect.width,
+    y: rect.top + ((1 - v.y) / 2) * rect.height
+  };
+}
+function maxPickDistance(rect) {
+  const a = projectCellCenter({ x: 0, y: state.layer, z: 0 }, rect);
+  const b = projectCellCenter({ x: 1, y: state.layer, z: 0 }, rect);
+  const c = projectCellCenter({ x: 0, y: state.layer, z: 1 }, rect);
+  const d1 = Math.hypot(a.x - b.x, a.y - b.y);
+  const d2 = Math.hypot(a.x - c.x, a.y - c.y);
+  const spacing = Math.min(d1, d2) || 40;
+  return clamp(spacing * 0.8, 26, 78);
+}
+function pickCell(e) {
+  pointerToNdc(e);
+  raycaster.setFromCamera(ndc, camera);
+  const layerMeshes = pickMeshesByLayer[state.layer] || [];
+  const hits = raycaster.intersectObjects(layerMeshes.concat(shapeGroup.children), false);
+  if (!hits.length) return null;
+  const rect = canvas.getBoundingClientRect();
+  let best = null;
+  let bestD = Infinity;
+  for (const h of hits) {
+    const cell = h.object.userData.cell;
+    if (!cell || cell.y !== state.layer) continue;
+    const p = projectCellCenter(cell, rect);
+    const d = Math.hypot(p.x - e.clientX, p.y - e.clientY);
+    if (d < bestD) { bestD = d; best = cell; }
+  }
+  if (!best || bestD > maxPickDistance(rect)) return null;
+  return { x: best.x, y: best.y, z: best.z };
+}
+
+function onPointerDown(e) {
+  if (e.button !== undefined && e.button !== 0 && e.pointerType === 'mouse') return;
+  canvas.setPointerCapture(e.pointerId);
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  cameraAnim = null;
+
+  if (pointers.size === 1) {
+    moved = false;
+    dragging = false;
+    downX = e.clientX;
+    downY = e.clientY;
+    view.vYaw = 0;
+    view.vPitch = 0;
+    galleryDrag = null;
+    if (galleryOn()) {
+      const gi = pickGallery(e);
+      if (gi !== null) galleryDrag = { index: gi, x: e.clientX, y: e.clientY };
+    }
+  } else if (pointers.size === 2) {
+    const pts = Array.from(pointers.values());
+    pinchDistance = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+  }
+}
+
+function onPointerMove(e) {
+  if (!pointers.has(e.pointerId)) {
+    // 僅作游標高亮
+    if (!galleryOn() && (state.mode !== 'play' || play.phase === 'memory')) {
+      const cell = pickCell(e);
+      if (cell) {
+        hoverBox.position.copy(cellWorld(cell.x, cell.y, cell.z));
+        hoverBox.visible = true;
+      } else {
+        hoverBox.visible = false;
+      }
+    }
+    return;
+  }
+
+  const prev = pointers.get(e.pointerId);
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+  if (pointers.size === 1) {
+    const dx = e.clientX - prev.x;
+    const dy = e.clientY - prev.y;
+    if (!moved && Math.hypot(e.clientX - downX, e.clientY - downY) > DRAG_THRESHOLD) {
+      moved = true;
+      dragging = true;
+      canvas.classList.add('is-dragging');
+      hoverBox.visible = false;
+    }
+    if (moved) {
+      if (galleryOn() && galleryDrag) {
+        // 拖曳候選模型：旋轉模型本身，不旋轉鏡頭
+        const m = galleryModels[galleryDrag.index];
+        if (m) {
+          m.inner.userData.yaw += dx * 0.012;
+          m.inner.userData.pitch = clamp(m.inner.userData.pitch + dy * 0.012, -1.25, 1.25);
+        }
+      } else {
+        view.yaw += dx * ROT_SPEED;
+        view.pitch = clamp(view.pitch + dy * ROT_SPEED, -PITCH_LIMIT, PITCH_LIMIT);
+      }
+    }
+  } else if (pointers.size === 2) {
+    const pts = Array.from(pointers.values());
+    const d = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+    if (pinchDistance > 0 && d > 0) {
+      zoomBy(pinchDistance / d);
+    }
+    pinchDistance = d;
+  }
+}
+
+function onPointerUp(e) {
+  const wasSingle = pointers.size === 1;
+  pointers.delete(e.pointerId);
+  if (pointers.size < 2) pinchDistance = 0;
+  canvas.classList.remove('is-dragging');
+
+  if (wasSingle && !moved && e.type === 'pointerup') {
+    if (galleryOn()) {
+      // 心理旋轉：輕按候選模型即為作答
+      if (galleryDrag) answerMental(galleryDrag.index);
+      galleryDrag = null;
+    } else {
+      // 視為點擊：切換該格的小正方體
+      const cell = pickCell(e);
+      if (cell) {
+        if (state.memoryActive && play.phase === 'memory') {
+          showToast('還沒開始砌，等倒數結束再試 🕒');
+        } else {
+          toggleCell(cell.x, cell.y, cell.z);
+        }
+      }
+    }
+  }
+  if (pointers.size === 0) {
+    dragging = false;
+    moved = false;
+  }
+}
+
+function onWheel(e) {
+  e.preventDefault();
+  zoomBy(1 + clamp(e.deltaY, -160, 160) * 0.0013);
+}
+
+canvas.addEventListener('pointerdown', onPointerDown);
+canvas.addEventListener('pointermove', onPointerMove);
+canvas.addEventListener('pointerleave', () => { hoverBox.visible = false; });
+window.addEventListener('pointerup', onPointerUp);
+window.addEventListener('pointercancel', onPointerUp);
+canvas.addEventListener('wheel', onWheel, { passive: false });
+canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+/* ==========================================================================
+   15. 鍵盤快捷鍵
+   ========================================================================== */
+window.addEventListener('keydown', (e) => {
+  const tag = (e.target && e.target.tagName) || '';
+  if (/input|textarea|select/i.test(tag)) return;
+  const key = e.key.toLowerCase();
+
+  if (key === 'r') {
+    e.preventDefault();
+    if (e.shiftKey) snapYaw(-1); else snapYaw(1);
+  } else if (key === 'a') {
+    e.preventDefault();
+    toggleAutoRotate();
+  } else if (e.code === 'Space') {
+    e.preventDefault();
+    spinOnce();
+  } else if (e.code === 'Backspace') {
+    e.preventDefault();
+    undo();
+  } else if (key === 'c') {
+    e.preventDefault();
+    clearAll();
+  }
+});
+
+/* ==========================================================================
+   16. 介面事件
+   ========================================================================== */
+for (const tab of document.querySelectorAll('.tab')) {
+  tab.addEventListener('click', () => setMode(tab.dataset.mode));
+}
+$('btn-undo').addEventListener('click', undo);
+$('btn-clear').addEventListener('click', clearAll);
+$('btn-yaw-left').addEventListener('click', () => snapYaw(-1));
+$('btn-yaw-right').addEventListener('click', () => snapYaw(1));
+$('btn-pitch-up').addEventListener('click', () => snapPitch(1));
+$('btn-pitch-down').addEventListener('click', () => snapPitch(-1));
+$('btn-reset-view').addEventListener('click', resetView);
+$('btn-auto').addEventListener('click', toggleAutoRotate);
+$('btn-spin-once').addEventListener('click', spinOnce);
+$('btn-zoom-in').addEventListener('click', () => zoomBy(0.86));
+$('btn-zoom-out').addEventListener('click', () => zoomBy(1.16));
+$('btn-start').addEventListener('click', () => {
+  state.memoryActive = true;
+  setMode('level');
+  $('lv-memory-block').hidden = false;
+  startRound();
+});
+$('btn-check').addEventListener('click', checkAnswer);
+$('btn-answer').addEventListener('click', showAnswer);
+$('btn-next').addEventListener('click', nextRound);
+$('modal-ok').addEventListener('click', () => {
+  modalEl.classList.remove('show');
+  if (play.phase === 'solved') nextRound();
+  else if (play.phase === 'failed') {
+    play.startedAt = performance.now();
+    play.running = true;
+    setPhase('rebuild', '重建階段');
+    updatePlayPanel();
+  }
+});
+$('fs-btn').addEventListener('click', () => {
+  if (document.fullscreenElement) document.exitFullscreen();
+  else document.documentElement.requestFullscreen().catch(() => {});
+});
+
+/* ==========================================================================
+   18. 兒童版：層級 / 關卡 / 星星 / 家長區 / 音效
+   （本段沿用原型的旋轉等價核心，只新增兒童向的流程邏輯）
+   ========================================================================== */
+
+/* ---------- 儲存 ---------- */
+const STORE_SETTINGS = 'cube-shape-lab-kids-settings';
+const STORE_PROGRESS = 'cube-shape-lab-kids-progress';
+const FONT_SIZES = { standard: 18, large: 22, xlarge: 26 };
+const DEFAULT_SETTINGS = { gridSize: 5, fontScale: 'large', timeLimit: false, hints: true, sound: true };
+const TIME_LIMIT = 90;            // 每關限時（秒）
+
+function loadJSON(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return JSON.parse(JSON.stringify(fallback));
+    const val = JSON.parse(raw);
+    if (!val || typeof val !== 'object') return JSON.parse(JSON.stringify(fallback));
+    return Object.assign(JSON.parse(JSON.stringify(fallback)), val);
+  } catch (e) {
+    return JSON.parse(JSON.stringify(fallback));
+  }
+}
+function saveJSON(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* 隱私模式忽略 */ }
+}
+
+let settings = loadJSON(STORE_SETTINGS, DEFAULT_SETTINGS);
+let progress = loadJSON(STORE_PROGRESS, { stars: {}, best: {}, completed: [] });
+
+function applyFontScale() {
+  const px = FONT_SIZES[settings.fontScale] || FONT_SIZES.large;
+  document.documentElement.style.setProperty('--base', px + 'px');
+}
+
+/* ---------- 音效（Web Audio 程序化，無需音檔） ---------- */
+const audioState = { ctx: null };
+function ensureAudio() {
+  if (!settings.sound) return null;
+  try {
+    if (!audioState.ctx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      audioState.ctx = new AC();
+    }
+    if (audioState.ctx.state === 'suspended') audioState.ctx.resume();
+    return audioState.ctx;
+  } catch (e) { audioState.ctx = null; return null; }
+}
+function beep(freq, dur, type, vol, delay) {
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  try {
+    const t0 = ctx.currentTime + (delay || 0);
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type || 'sine';
+    osc.frequency.setValueAtTime(freq, t0);
+    gain.gain.setValueAtTime(0.0001, t0);
+    gain.gain.exponentialRampToValueAtTime(Math.max(vol || 0.13, 0.001), t0 + 0.014);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(t0);
+    osc.stop(t0 + dur + 0.03);
+  } catch (e) { /* 忽略音訊錯誤 */ }
+}
+const sfx = {
+  place() { beep(640, 0.08, 'triangle', 0.12); beep(880, 0.09, 'triangle', 0.10, 0.05); },
+  remove() { beep(420, 0.08, 'triangle', 0.10); beep(280, 0.10, 'triangle', 0.09, 0.05); },
+  correct() { [523, 659, 784].forEach((f, i) => beep(f, 0.18, 'sine', 0.14, i * 0.09)); },
+  wrong() { beep(230, 0.16, 'sawtooth', 0.07); beep(170, 0.22, 'sawtooth', 0.06, 0.10); },
+  star() { [784, 988, 1175, 1568].forEach((f, i) => beep(f, 0.22, 'sine', 0.12, i * 0.08)); }
+};
+window.addEventListener('pointerdown', function () { ensureAudio(); }, { once: true });
+window.addEventListener('keydown', function () { ensureAudio(); }, { once: true });
+
+/* ---------- 層級（垂直方向為 y 軸：第 1 層在最底） ---------- */
+const ghostGroup = new THREE.Group();
+worldGroup.add(ghostGroup);
+const ghostGeometry = new THREE.EdgesGeometry(new THREE.BoxGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE));
+const ghostMaterial = new THREE.LineBasicMaterial({ color: 0x4f8fc0, transparent: true, opacity: 0.55 });
+
+let layerPlane = null;
+let layerGridMesh = null;
+let groundGridMesh = null;
+let latticeBox = null;
+
+/** 重建當前層的平面網格（讓小朋友清楚看見這一層的位置） */
+function rebuildLayerPlane() {
+  if (layerPlane) { worldGroup.remove(layerPlane); layerPlane.geometry.dispose(); }
+  if (layerGridMesh) { worldGroup.remove(layerGridMesh); layerGridMesh.geometry.dispose(); }
+  const h = (GRID * CELL) / 2;
+  const y = (state.layer - HALF_GRID) * CELL;
+
+  layerPlane = new THREE.Mesh(
+    new THREE.PlaneGeometry(GRID * CELL, GRID * CELL),
+    new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.13, side: THREE.DoubleSide, depthWrite: false })
+  );
+  layerPlane.rotation.x = -Math.PI / 2;
+  layerPlane.position.y = y;
+  layerPlane.renderOrder = -20;
+  worldGroup.add(layerPlane);
+
+  const lines = [];
+  for (let i = 0; i <= GRID; i++) {
+    const p = -h + i * CELL;
+    lines.push(p, -h, 0, p, h, 0);
+    lines.push(-h, p, 0, h, p, 0);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(lines, 3));
+  layerGridMesh = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: 0x4f8fc0, transparent: true, opacity: 0.5 }));
+  layerGridMesh.position.y = y + 0.004;
+  worldGroup.add(layerGridMesh);
+}
+
+/** 依目前格點大小重建格點外框、地面網格與拾取盒 */
+function rebuildLattice() {
+  for (const m of pickMeshes) worldGroup.remove(m);
+  pickMeshes = [];
+  pickIndex = new Map();
+  pickMeshesByLayer = [];
+  for (let x = 0; x < GRID; x++) {
+    for (let y = 0; y < GRID; y++) {
+      for (let z = 0; z < GRID; z++) {
+        const mesh = new THREE.Mesh(pickGeometry, pickMaterial);
+        mesh.position.copy(cellWorld(x, y, z));
+        mesh.userData.cell = { x, y, z };
+        mesh.renderOrder = -10;
+        worldGroup.add(mesh);
+        pickMeshes.push(mesh);
+        if (!pickMeshesByLayer[y]) pickMeshesByLayer[y] = [];
+        pickMeshesByLayer[y].push(mesh);
+        pickIndex.set(cellKey(x, y, z), mesh);
+      }
+    }
+  }
+
+  if (groundGridMesh) { groundGroup.remove(groundGridMesh); groundGridMesh.geometry.dispose(); }
+  const h = (GRID * CELL) / 2;
+  const lines = [];
+  for (let i = 0; i <= GRID; i++) {
+    const p = -h + i * CELL;
+    lines.push(p, -3.38, -h, p, -3.38, h);
+    lines.push(-h, -3.38, p, h, -3.38, p);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(lines, 3));
+  groundGridMesh = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: 0x7ba6c9, transparent: true, opacity: 0.8 }));
+  groundGroup.add(groundGridMesh);
+
+  if (latticeBox) { worldGroup.remove(latticeBox); latticeBox.geometry.dispose(); }
+  latticeBox = new THREE.LineSegments(
+    new THREE.EdgesGeometry(new THREE.BoxGeometry(GRID * CELL, GRID * CELL, GRID * CELL)),
+    new THREE.LineBasicMaterial({ color: 0x7ba6c9, transparent: true, opacity: 0.5 })
+  );
+  worldGroup.add(latticeBox);
+
+  rebuildLayerPlane();
+}
+
+/** 心理旋轉關卡隱藏砌形場地，其他關卡顯示 */
+function updateLatticeVisibility() {
+  const on = !state.galleryActive;
+  if (latticeBox) latticeBox.visible = on;
+  if (layerPlane) layerPlane.visible = on;
+  if (layerGridMesh) layerGridMesh.visible = on;
+  if (groundGridMesh) groundGridMesh.visible = on;
+}
+
+function buildLayerBar() {
+  const wrap = $('layer-bar');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  for (let y = 0; y < GRID; y++) {
+    const b = document.createElement('button');
+    b.className = 'layer-btn';
+    b.dataset.layer = String(y);
+    b.innerHTML = '<b>' + (y + 1) + '</b>層';
+    b.setAttribute('aria-label', '第 ' + (y + 1) + ' 層');
+    b.addEventListener('click', () => setLayer(y));
+    wrap.appendChild(b);
+  }
+  updateLayerBar();
+}
+
+function updateLayerBar() {
+  const wrap = $('layer-bar');
+  if (!wrap) return;
+  const counts = new Array(GRID).fill(0);
+  for (const c of state.cells.values()) counts[c.y]++;
+  wrap.querySelectorAll('.layer-btn').forEach((b) => {
+    const y = parseInt(b.dataset.layer, 10);
+    b.classList.toggle('is-active', y === state.layer);
+    b.classList.toggle('has-cubes', counts[y] > 0);
+  });
+}
+
+function setLayer(y) {
+  state.layer = clamp(y | 0, 0, GRID - 1);
+  rebuildLayerPlane();
+  rebuildShape();
+  updateLayerBar();
+}
+
+function setGridSize(n) {
+  const v = clamp(parseInt(n, 10) || 5, 3, 5);
+  settings.gridSize = v;
+  saveJSON(STORE_SETTINGS, settings);
+  GRID = v;
+  HALF_GRID = (GRID - 1) / 2;
+  state.cells = new Map();
+  state.undoStack = [];
+  state.layer = clamp(state.layer, 0, GRID - 1);
+  rebuildLattice();
+  buildLayerBar();
+  rebuildShape();
+  showToast('格點已更換為 ' + GRID + '×' + GRID + '×' + GRID);
+}
+
+/* ---------- 提示標記 ---------- */
+const hintMarker = new THREE.LineSegments(
+  new THREE.EdgesGeometry(new THREE.BoxGeometry(CELL * 0.98, CELL * 0.98, CELL * 0.98)),
+  new THREE.LineBasicMaterial({ color: 0xff4d6d, transparent: true, opacity: 0.95 })
+);
+hintMarker.visible = false;
+worldGroup.add(hintMarker);
+let hintMarkerUntil = 0;
+
+function showHintMarker(cell) {
+  hintMarker.position.copy(cellWorld(cell.x, cell.y, cell.z));
+  hintMarker.visible = true;
+  hintMarkerUntil = performance.now() + 4200;
+}
+
+/* ---------- 關卡資料 ---------- */
+const TYPE_LABEL = { copy: '照樣搭建', mental: '心理旋轉', angle: '角度挑戰' };
+const TYPE_ICON = { copy: '🧱', mental: '🧠', angle: '📐' };
+
+const LEVELS = [
+  { id: 1, type: 'copy', title: '兩塊磚', cells: [[0, 0, 0], [0, 0, 1]] },
+  { id: 2, type: 'copy', title: '小拐角', cells: [[0, 0, 0], [0, 0, 1], [0, 1, 1]] },
+  { id: 3, type: 'copy', title: '三連線', cells: [[0, 0, 0], [1, 0, 0], [2, 0, 0]] },
+  { id: 4, type: 'copy', title: 'L 形', cells: [[0, 0, 0], [0, 1, 0], [0, 2, 0], [1, 2, 0]] },
+  { id: 5, type: 'copy', title: 'T 字', cells: [[0, 0, 0], [1, 0, 0], [2, 0, 0], [1, 1, 0]] },
+  { id: 6, type: 'copy', title: '小樓梯', cells: [[0, 0, 0], [0, 1, 0], [1, 1, 0], [1, 2, 0], [2, 2, 0]] },
+  { id: 7, type: 'mental', title: '小螺絲', cells: [[0, 0, 0], [1, 0, 0], [1, 1, 0], [1, 1, 1]] },
+  { id: 8, type: 'mental', title: '螺絲塔', cells: [[0, 0, 0], [1, 0, 0], [1, 1, 0], [1, 1, 1], [2, 1, 1]] },
+  { id: 9, type: 'mental', title: '拐角樓', cells: [[0, 0, 2], [0, 0, 1], [0, 0, 0], [1, 0, 0], [0, 1, 2]] },
+  { id: 10, type: 'mental', title: '雙螺絲', cells: [[0, 0, 0], [1, 0, 0], [1, 1, 0], [1, 1, 1], [2, 1, 1], [2, 1, 0]] },
+  { id: 11, type: 'mental', title: '扭紋', cells: [[0, 0, 1], [0, 1, 1], [0, 2, 1], [0, 1, 2], [0, 2, 2], [1, 1, 2]] },
+  { id: 12, type: 'mental', title: '高螺絲', cells: [[0, 0, 0], [1, 0, 0], [1, 1, 0], [1, 1, 1], [1, 1, 2], [2, 1, 2]] },
+  { id: 13, type: 'mental', title: '扭一扭', cells: [[0, 0, 0], [1, 0, 0], [1, 0, 1], [1, 1, 1], [2, 1, 1], [2, 1, 2]] },
+  { id: 14, type: 'mental', title: '大螺絲', cells: [[0, 0, 0], [1, 0, 0], [1, 1, 0], [1, 1, 1], [2, 1, 1], [2, 2, 1], [2, 2, 2]] },
+  { id: 15, type: 'angle', title: '影子一', cells: [[0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1]] },
+  { id: 16, type: 'angle', title: '影子二', cells: [[0, 0, 0], [1, 0, 0], [1, 1, 0], [1, 0, 1], [0, 0, 1]] },
+  { id: 17, type: 'angle', title: '影子三', cells: [[0, 0, 0], [1, 0, 0], [2, 0, 0], [1, 1, 0], [1, 0, 1]] },
+  { id: 18, type: 'angle', title: '影子四', cells: [[0, 0, 0], [1, 0, 0], [1, 1, 0], [2, 1, 0], [1, 0, 1], [1, 1, 1]] },
+  { id: 19, type: 'angle', title: '影子五', cells: [[0, 0, 0], [1, 0, 0], [2, 0, 0], [2, 1, 0], [2, 0, 1], [2, 1, 1]] },
+  { id: 20, type: 'angle', title: '大影子', cells: [[0, 0, 0], [1, 0, 0], [1, 1, 0], [2, 1, 0], [2, 2, 0], [1, 0, 1], [1, 1, 1]] }
+];
+
+const levelState = {
+  index: 0,
+  type: 'copy',
+  phase: 'idle',        // idle | active | solved
+  hintsUsed: 0,
+  elapsed: 0,
+  startedAt: 0,
+  running: false,
+  target: new Map(),
+  candidates: [],
+  correctIndex: -1,
+  limitHit: false
+};
+
+const miniViews = [];
+let miniTarget = null;
+
+/* ---------- 心理旋轉：主場景內的候選模型（大模型、可拖曳、可點選） ---------- */
+const galleryGroup = new THREE.Group();
+scene.add(galleryGroup);
+const galleryLabels = [];
+let galleryModels = [];
+let galleryDrag = null;
+const GALLERY_SPACING = 4.3;      // 闊螢幕：候選模型橫向並排的間距
+const GALLERY_SPACING_V = 3.8;    // 窄螢幕（手機）：候選模型縱向排列的間距
+const GALLERY_SCALE = 1.5;
+const GALLERY_SCALE_V = 1.15;
+let galleryVertical = false;
+
+function clearGallery() {
+  while (galleryGroup.children.length) galleryGroup.remove(galleryGroup.children[0]);
+  galleryModels = [];
+  for (const el of galleryLabels) if (el.parentNode) el.parentNode.removeChild(el);
+  galleryLabels.length = 0;
+}
+
+/** 建立候選模型（每個候選一組，可各自拖曳旋轉） */
+function buildGallery() {
+  clearGallery();
+  const list = levelState.candidates;
+  const n = list.length;
+  if (!n) return;
+  galleryVertical = window.innerWidth <= 700;   // 手機改為縱向排列，模型可以更大
+  const host = $('gallery-labels');
+  host.innerHTML = '';
+  for (let i = 0; i < n; i++) {
+    const item = list[i];
+    const cells = item.cells;
+    let cx = 0, cy = 0, cz = 0;
+    for (const c of cells) { cx += c[0]; cy += c[1]; cz += c[2]; }
+    cx /= cells.length; cy /= cells.length; cz /= cells.length;
+
+    const model = new THREE.Group();
+    model.position.set(-cx, -cy, -cz);
+    model.scale.setScalar(galleryVertical ? GALLERY_SCALE_V : GALLERY_SCALE);
+    for (const c of cells) {
+      const mesh = new THREE.Mesh(cubeGeometry, cubeMaterials[0]);
+      mesh.position.set(c[0], c[1], c[2]);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      mesh.userData.galleryIndex = i;
+      model.add(mesh);
+    }
+    const inner = new THREE.Group();
+    inner.userData.yaw = 0.62;
+    inner.userData.pitch = 0.34;
+    inner.add(model);
+    const outer = new THREE.Group();
+    outer.add(inner);
+    outer.position.x = galleryVertical ? 0 : (i - (n - 1) / 2) * GALLERY_SPACING;
+    outer.position.y = galleryVertical ? (i - (n - 1) / 2) * GALLERY_SPACING_V : 0;
+    galleryGroup.add(outer);
+    galleryModels.push({ outer, inner, model, index: i, kind: item.kind });
+
+    const lab = document.createElement('div');
+    lab.className = 'glabel';
+    lab.textContent = '甲乙丙'.charAt(i);
+    host.appendChild(lab);
+    galleryLabels.push(lab);
+  }
+  galleryGroup.visible = true;
+  host.hidden = false;
+  fitGallery();
+}
+
+/** 依畫面比例調整鏡頭距離，確保三個模型完整入鏡 */
+/**
+ * 依「實際可見範圍」調整鏡頭，令候選模型完整而且盡量大。
+ * 可見範圍 = 畫面扣除頂部工具列、手機底部面板與（桌面）左側面板之後的部分。
+ */
+function fitGallery() {
+  if (!galleryModels.length) return;
+  const n = galleryModels.length;
+  const vertical = galleryVertical;
+  const needW = vertical ? 3.6 : (n - 1) * GALLERY_SPACING + 3.6;
+  const needH = vertical ? (n - 1) * GALLERY_SPACING_V + 3.2 : 3.2;
+  const aspect = Math.max(camera.aspect, 0.3);
+  const tanV = Math.tan((camera.fov * Math.PI / 180) / 2);
+  const tanH = tanV * aspect;
+
+  const W = window.innerWidth;
+  const H = window.innerHeight;
+  const isMobile = W <= 880;
+  // 垂直可見範圍（以畫面高度比例計）
+  const topFrac = Math.min(76 / H, 0.14);
+  const bottomFrac = isMobile ? 1 - 0.46 : 1;
+  const visH = Math.max(bottomFrac - topFrac, 0.3);
+  const shiftVFrac = 0.5 - (topFrac + bottomFrac) / 2;
+  // 水平可見範圍
+  const leftFrac = isMobile ? 0 : Math.min(378 / W, 0.42);
+  const visW = Math.max(1 - leftFrac, 0.3);
+  const shiftHFrac = (leftFrac + 1) / 2 - 0.5;
+
+  let dist = Math.max((needW / 2) / (visW * tanH), (needH / 2) / (visH * tanV)) * 1.25;
+  for (let k = 0; k < 3; k++) {
+    const h = Math.abs(shiftHFrac) * 2 * dist * tanH;
+    dist = Math.max(((needW / 2) + h) / (visW * tanH), (needH / 2) / (visH * tanV)) * 1.25;
+  }
+  view.dist = clamp(dist, MIN_DIST, MAX_DIST);
+  applyCamera();
+  galleryGroup.position.x = shiftHFrac * 2 * view.dist * tanH;
+  galleryGroup.position.y = -0.5 + shiftVFrac * 2 * view.dist * tanV;
+}
+
+/** 候選模型上方的甲乙丙標籤，跟隨模型位置 */
+function updateGalleryLabels() {
+  if (!galleryModels.length || !galleryGroup.visible) return;
+  const rect = canvas.getBoundingClientRect();
+  const v = new THREE.Vector3();
+  for (let i = 0; i < galleryModels.length; i++) {
+    const m = galleryModels[i];
+    m.inner.rotation.set(m.inner.userData.pitch, m.inner.userData.yaw, 0, 'YXZ');
+    m.outer.getWorldPosition(v);
+    if (galleryVertical) v.x -= 2.3; else v.y += 2.3;
+    v.project(camera);
+    const el = galleryLabels[i];
+    if (!el) continue;
+    el.style.left = (rect.left + ((v.x + 1) / 2) * rect.width) + 'px';
+    el.style.top = (rect.top + ((1 - v.y) / 2) * rect.height) + 'px';
+  }
+}
+
+/** 候選模型只有在「關卡模式 + 心理旋轉關卡」時才可互動 */
+function galleryOn() {
+  return state.galleryActive && state.mode === 'level';
+}
+
+/** 射線檢查：滑鼠／手指是否落在某個候選模型上 */
+function pickGallery(e) {
+  if (!galleryModels.length) return null;
+  pointerToNdc(e);
+  raycaster.setFromCamera(ndc, camera);
+  const hits = raycaster.intersectObjects(galleryGroup.children, true);
+  for (const h of hits) {
+    const idx = h.object.userData.galleryIndex;
+    if (idx !== undefined && idx !== null) return idx;
+  }
+  return null;
+}
+
+/* ---------- 小模型（候選形狀的 3D 預覽，可拖曳旋轉） ---------- */
+function createMiniView(host, tagText, onClick) {
+  host.innerHTML = '';
+  const canvas = document.createElement('canvas');
+  host.appendChild(canvas);
+  if (tagText) {
+    const tag = document.createElement('span');
+    tag.className = 'tag';
+    tag.textContent = tagText;
+    host.appendChild(tag);
+  }
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setClearColor(0x000000, 0);
+
+  const miniScene = new THREE.Scene();
+  miniScene.add(new THREE.HemisphereLight(0xffffff, 0xd2e8ff, 1.75));
+  const keyLight = new THREE.DirectionalLight(0xffffff, 1.5);
+  keyLight.position.set(4, 7, 6);
+  miniScene.add(keyLight);
+  const fillLight = new THREE.DirectionalLight(0xffe3bd, 0.55);
+  fillLight.position.set(-5, 2, -4);
+  miniScene.add(fillLight);
+
+  const miniCamera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
+  const group = new THREE.Group();
+  miniScene.add(group);
+
+  const mini = {
+    canvas, renderer, scene: miniScene, camera: miniCamera, group,
+    yaw: 0.65, pitch: 0.42,
+    cells: [],
+    onClick: onClick || null,
+    disposed: false,
+    /** 依形狀大小自動調整相機距離，確保整個模型完整入鏡 */
+    fit() {
+      const w = canvas.clientWidth || 1;
+      const h = canvas.clientHeight || 1;
+      miniCamera.aspect = w / h;
+      miniCamera.updateProjectionMatrix();
+      if (!this.cells.length) {
+        miniCamera.position.set(0, 0, 5);
+        miniCamera.lookAt(0, 0, 0);
+        return;
+      }
+      const n = this.cells.length;
+      let cx = 0, cy = 0, cz = 0;
+      for (const c of this.cells) { cx += c[0]; cy += c[1]; cz += c[2]; }
+      cx /= n; cy /= n; cz /= n;
+      let r = 0;
+      for (const c of this.cells) {
+        r = Math.max(r, Math.hypot(c[0] - cx, c[1] - cy, c[2] - cz));
+      }
+      r += CUBE_SIZE * 0.87;                     // 加上小正方體本身的半對角線
+      const tanV = Math.tan((miniCamera.fov * Math.PI / 180) / 2);
+      const tanH = tanV * miniCamera.aspect;
+      const dist = Math.max(r / tanV, r / tanH) * 1.04;
+      miniCamera.position.set(0, 0, dist);
+      miniCamera.lookAt(0, 0, 0);
+    },
+    setCells(list) {
+      this.cells = list.map((c) => c.slice());
+      while (group.children.length) group.remove(group.children[0]);
+      const n = Math.max(this.cells.length, 1);
+      let cx = 0, cy = 0, cz = 0;
+      for (const c of this.cells) { cx += c[0]; cy += c[1]; cz += c[2]; }
+      cx /= n; cy /= n; cz /= n;
+      group.position.set(1 - cx, 1 - cy, 1 - cz);
+      for (const c of this.cells) {
+        const mesh = new THREE.Mesh(cubeGeometry, cubeMaterials[(c[3] || 0) % cubeMaterials.length]);
+        mesh.position.set(c[0] - 1, c[1] - 1, c[2] - 1);
+        group.add(mesh);
+      }
+      this.fit();
+    },
+    render() {
+      if (this.disposed) return;
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      if (!w || !h) return;
+      const pr = renderer.getPixelRatio();
+      if (canvas.width !== Math.floor(w * pr) || canvas.height !== Math.floor(h * pr)) {
+        renderer.setSize(w, h, false);
+        this.fit();
+      }
+      group.rotation.set(this.pitch, this.yaw, 0, 'YXZ');
+      renderer.render(miniScene, miniCamera);
+    },
+    dispose() {
+      this.disposed = true;
+      while (group.children.length) group.remove(group.children[0]);
+      try { renderer.dispose(); } catch (e) { /* 忽略 */ }
+      if (canvas.parentNode) canvas.parentNode.removeChild(canvas);
+    }
+  };
+
+  let dragging = false, moved = false, lastX = 0, lastY = 0;
+  canvas.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    canvas.setPointerCapture(e.pointerId);
+    dragging = true; moved = false; lastX = e.clientX; lastY = e.clientY;
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - lastX, dy = e.clientY - lastY;
+    if (Math.abs(dx) + Math.abs(dy) > 3) moved = true;
+    mini.yaw += dx * 0.012;
+    mini.pitch = clamp(mini.pitch + dy * 0.012, -1.25, 1.25);
+    lastX = e.clientX; lastY = e.clientY;
+  });
+  const endDrag = () => {
+    if (!dragging) return;
+    dragging = false;
+    if (!moved && mini.onClick) mini.onClick(mini);
+  };
+  canvas.addEventListener('pointerup', endDrag);
+  canvas.addEventListener('pointercancel', () => { dragging = false; });
+
+  miniViews.push(mini);
+  return mini;
+}
+
+function disposeMinis() {
+  while (miniViews.length) miniViews.pop().dispose();
+  miniTarget = null;
+}
+
+/* ---------- 整數座標的形狀運算 ---------- */
+function stripColors(map) {
+  const out = new Map();
+  for (const c of map.values()) out.set(cellKey(c.x, c.y, c.z), { x: c.x, y: c.y, z: c.z, color: 0 });
+  return out;
+}
+
+const IDENTITY_M = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+const YAW90_M = [[0, 0, 1], [1, 0, 0], [0, 1, 0]];
+
+function recenterCells(pts) {
+  const minX = Math.min.apply(null, pts.map((p) => p[0]));
+  const maxX = Math.max.apply(null, pts.map((p) => p[0]));
+  const minY = Math.min.apply(null, pts.map((p) => p[1]));
+  const maxY = Math.max.apply(null, pts.map((p) => p[1]));
+  const minZ = Math.min.apply(null, pts.map((p) => p[2]));
+  const maxZ = Math.max.apply(null, pts.map((p) => p[2]));
+  const ox = Math.floor((GRID - (maxX - minX + 1)) / 2) - minX;
+  const oy = Math.floor((GRID - (maxY - minY + 1)) / 2) - minY;
+  const oz = Math.floor((GRID - (maxZ - minZ + 1)) / 2) - minZ;
+  return pts.map((p) => [p[0] + ox, p[1] + oy, p[2] + oz]);
+}
+
+/** 以整數旋轉矩陣（可選鏡射）轉換形狀，並重新置中 */
+function transformCells(cells, m, mirrorX) {
+  const pts = cells.map((c) => {
+    const p = rotatePoint(c[0], c[1], c[2], m);
+    return [mirrorX ? -p[0] : p[0], p[1], p[2]];
+  });
+  return recenterCells(pts);
+}
+
+/**
+ * 改動一格：把其中一格搬到相鄰的空位。
+ * 新位置必須與其餘方塊相鄰，確保干擾項仍然係一個連通的形狀，
+ * 否則會變成「散開幾粒」，小朋友根本看不出同原形的分別。
+ */
+function changeOneCell(cells) {
+  const dirs = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]];
+  const keyOf = (c) => c[0] + ',' + c[1] + ',' + c[2];
+  const taken = new Set(cells.map(keyOf));
+  const adjacent = (a, b) => dirs.some((dd) => a[0] + dd[0] === b[0] && a[1] + dd[1] === b[1] && a[2] + dd[2] === b[2]);
+  for (let attempt = 0; attempt < 96; attempt++) {
+    const idx = attempt % cells.length;
+    const base = cells[idx];
+    const d = dirs[(attempt * 5 + idx * 3) % 6];
+    const next = [base[0] + d[0], base[1] + d[1], base[2] + d[2]];
+    if (next[0] < 0 || next[0] > 2 || next[1] < 0 || next[1] > 2 || next[2] < 0 || next[2] > 2) continue;
+    if (taken.has(keyOf(next))) continue;
+    const rest = cells.filter((_, i) => i !== idx);
+    if (!rest.some((c) => adjacent(c, next))) continue;   // 保持連通
+    return rest.concat([next]);
+  }
+  return cells.slice();
+}
+
+function cellsToMap(cells) {
+  const map = new Map();
+  for (const c of cells) map.set(cellKey(c[0], c[1], c[2]), { x: c[0], y: c[1], z: c[2], color: 0 });
+  return map;
+}
+
+/* ---------- 等距投影（用於角度挑戰） ---------- */
+const ISO_C = Math.cos(Math.PI / 6);
+const ISO_S = Math.sin(Math.PI / 6);
+function isoPoint(x, y, z) { return { x: (x - z) * ISO_C, y: (x + z) * ISO_S - y }; }
+
+/** 投影簽章：兩個格子投影後重疊的充要條件是 x-z 與 x+z-2y 相同 */
+function projectionSignature(map) {
+  const set = new Set();
+  for (const c of map.values()) set.add((c.x - c.z) + '|' + (c.x + c.z - 2 * c.y));
+  return set;
+}
+function sameProjection(mapA, mapB) {
+  const a = projectionSignature(mapA);
+  const b = projectionSignature(mapB);
+  if (a.size !== b.size) return false;
+  for (const k of a) if (!b.has(k)) return false;
+  return true;
+}
+
+function drawProjection(cells) {
+  const canvas = $('lv-proj');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const pts = [];
+  for (const c of cells) {
+    for (const dx of [0, 1]) for (const dy of [0, 1]) for (const dz of [0, 1]) {
+      pts.push(isoPoint(c[0] + dx, c[1] + dy, c[2] + dz));
+    }
+  }
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  for (const p of pts) {
+    minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+    minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
+  }
+  const pad = 18;
+  const scale = Math.min((W - pad * 2) / Math.max(maxX - minX, 0.001), (H - pad * 2) / Math.max(maxY - minY, 0.001));
+  const ox = (W - (maxX - minX) * scale) / 2 - minX * scale;
+  const oy = (H - (maxY - minY) * scale) / 2 - minY * scale;
+  const P = (x, y, z) => {
+    const p = isoPoint(x, y, z);
+    return { x: p.x * scale + ox, y: p.y * scale + oy };
+  };
+
+  const sorted = cells.slice().sort((a, b) => (a[0] + a[2]) - (b[0] + b[2]));
+  for (const c of sorted) {
+    const x = c[0], y = c[1], z = c[2];
+    const top = [P(x, y + 1, z), P(x + 1, y + 1, z), P(x + 1, y + 1, z + 1), P(x, y + 1, z + 1)];
+    const right = [P(x + 1, y, z), P(x + 1, y + 1, z), P(x + 1, y + 1, z + 1), P(x + 1, y, z + 1)];
+    const left = [P(x, y, z + 1), P(x, y + 1, z + 1), P(x + 1, y + 1, z + 1), P(x + 1, y, z + 1)];
+    const poly = (pts2, fill) => {
+      ctx.beginPath();
+      ctx.moveTo(pts2[0].x, pts2[0].y);
+      for (let i = 1; i < pts2.length; i++) ctx.lineTo(pts2[i].x, pts2[i].y);
+      ctx.closePath();
+      ctx.fillStyle = fill;
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(120,90,40,.35)';
+      ctx.stroke();
+    };
+    poly(left, '#ffb457');
+    poly(right, '#ff9a4d');
+    poly(top, '#ffe08a');
+  }
+}
+
+/* ---------- 心理旋轉：候選形狀 ---------- */
+function buildCandidates(lv) {
+  const wrap = $('lv-cands');
+  wrap.innerHTML = '';
+  levelState.candidates = [];
+  const base = lv.cells;
+
+  const correct = transformCells(base, YAW90_M, false);
+  const mirror = transformCells(base, IDENTITY_M, true);
+  let changed = changeOneCell(base);
+
+  const targetMap = cellsToMap(base);
+  // 確保干擾項真的不等價（形狀本身左右對稱時，鏡像會失效）
+  let guard = 0;
+  while (cellsEquivalentShape(cellsToMap(changed), targetMap) && guard < 30) {
+    changed = changeOneCell(changed);
+    guard++;
+  }
+  const mirrorValid = !cellsEquivalentShape(cellsToMap(mirror), targetMap);
+
+  const list = [
+    { cells: correct, kind: 'correct' },
+    { cells: mirrorValid ? mirror : changed, kind: mirrorValid ? 'mirror' : 'changed' },
+    { cells: changed, kind: 'changed' }
+  ];
+
+  // 依關卡編號決定候選次序，令答案位置每關不同
+  const order = [0, 1, 2];
+  const shift = (lv.id * 7) % 3;
+  const rotated = order.slice(shift).concat(order.slice(0, shift));
+  const final = rotated.map((i) => list[i]);
+
+  final.forEach((item, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'candbtn';
+    btn.textContent = '甲乙丙'.charAt(i);
+    btn.setAttribute('aria-label', '候選 ' + '甲乙丙'.charAt(i));
+    btn.addEventListener('click', () => answerMental(i));
+    wrap.appendChild(btn);
+    levelState.candidates.push({ cells: item.cells, kind: item.kind, host: btn });
+  });
+  levelState.correctIndex = final.findIndex((c) => c.kind === 'correct');
+}
+
+function answerMental(index) {
+  if (levelState.phase !== 'active') return;
+  const cand = levelState.candidates[index];
+  if (!cand) return;
+  if (index === levelState.correctIndex) {
+    cand.host.classList.add('is-right');
+    if (galleryLabels[index]) galleryLabels[index].classList.add('is-right');
+    finishLevel();
+  } else {
+    cand.host.classList.add('is-wrong');
+    if (galleryLabels[index]) galleryLabels[index].classList.add('is-wrong');
+    sfx.wrong();
+    const msg = cand.kind === 'mirror'
+      ? '這個是鏡像，轉不過來 😵'
+      : '這個形狀不同，差了一格 🔍';
+    showToast(msg, 'bad');
+    setTimeout(() => {
+      cand.host.classList.remove('is-wrong');
+      if (galleryLabels[index]) galleryLabels[index].classList.remove('is-wrong');
+    }, 700);
+  }
+}
+
+/* ---------- 關卡流程 ---------- */
+function loadLevel(index, silent) {
+  const idx = clamp(index | 0, 0, LEVELS.length - 1);
+  levelState.index = idx;
+  const lv = LEVELS[idx];
+  levelState.type = lv.type;
+  levelState.phase = 'active';
+  levelState.hintsUsed = 0;
+  levelState.elapsed = 0;
+  levelState.startedAt = performance.now();
+  levelState.running = true;
+  levelState.limitHit = false;
+  levelState.candidates = [];
+  levelState.correctIndex = -1;
+  levelState.target = cellsToMap(lv.cells);
+
+  state.cells = new Map();
+  state.undoStack = [];
+  setLayer(0);
+
+  disposeMinis();
+  const miniHost = $('lv-mini');
+  if (lv.type === 'copy' || lv.type === 'mental') {
+    miniTarget = createMiniView(miniHost, '目標');
+    miniTarget.setCells(lv.cells.map((c) => [c[0], c[1], c[2], 0]));
+  } else {
+    miniHost.innerHTML = '';
+    drawProjection(lv.cells);
+  }
+  if (lv.type === 'mental') buildCandidates(lv);
+
+  // 心理旋轉關卡改用主場景顯示候選模型；其他關卡則顯示砌形場地
+  state.galleryActive = lv.type === 'mental';
+  if (state.galleryActive) {
+    buildGallery();
+    galleryGroup.visible = state.mode === 'level';
+    $('gallery-labels').hidden = state.mode !== 'level';
+    view.yaw = 0;
+    view.pitch = DEFAULT_PITCH;
+    fitGallery();
+  } else {
+    clearGallery();
+    galleryGroup.visible = false;
+  }
+  updateLatticeVisibility();
+
+  updateLevelUI();
+  if (!silent) showToast('第 ' + lv.id + ' 關：' + lv.title + ' ' + TYPE_ICON[lv.type], 'good');
+}
+
+function updateLevelUI() {
+  const lv = LEVELS[levelState.index];
+  if (!lv) return;
+  $('lv-no').textContent = '第 ' + lv.id + ' 關';
+  $('lv-name').textContent = lv.title;
+  $('lv-type').textContent = TYPE_ICON[lv.type] + ' ' + TYPE_LABEL[lv.type];
+  $('level-value').textContent = String(lv.id);
+  renderStars($('lv-stars'), progress.stars[lv.id] || 0);
+
+  const isAngle = lv.type === 'angle';
+  const isMental = lv.type === 'mental';
+  $('lv-target-block').hidden = false;
+  $('lv-mini').hidden = isAngle;
+  $('lv-proj').hidden = !isAngle;
+  $('lv-cand-block').hidden = !isMental;
+  $('lv-check').hidden = isMental;
+  $('lv-hint').hidden = !settings.hints || isMental;
+  $('lv-tip').textContent = isAngle
+    ? '照著影子砌出來 📐'
+    : (isMental ? '轉動每個模型，選出與目標一樣的那個 🔄' : '照著砌出來 ✋');
+}
+
+function renderStars(el, n) {
+  if (!el) return;
+  el.innerHTML = '';
+  for (let i = 0; i < 3; i++) {
+    const s = document.createElement('span');
+    s.className = i < n ? 'on' : 'off';
+    s.textContent = '★';
+    el.appendChild(s);
+  }
+}
+
+function updateLevelTimer() {
+  if (levelState.running) {
+    levelState.elapsed = (performance.now() - levelState.startedAt) / 1000;
+    if (settings.timeLimit && !levelState.limitHit && levelState.elapsed > TIME_LIMIT) {
+      levelState.limitHit = true;
+      showToast('時間到！照砌就得 🏁');
+    }
+  }
+  const el = $('lv-time');
+  if (!el) return;
+  if (settings.timeLimit) {
+    const left = Math.max(0, TIME_LIMIT - levelState.elapsed);
+    el.textContent = '剩 ' + left.toFixed(0) + ' 秒';
+  } else {
+    el.textContent = levelState.elapsed.toFixed(0) + ' 秒';
+  }
+}
+
+function computeStars() {
+  let stars = 1;
+  if (settings.timeLimit && levelState.elapsed <= TIME_LIMIT) stars++;
+  if (settings.hints && levelState.hintsUsed === 0) stars++;
+  if (!settings.timeLimit || !settings.hints) stars = Math.min(stars, 2);
+  return stars;
+}
+
+function finishLevel() {
+  const lv = LEVELS[levelState.index];
+  levelState.phase = 'solved';
+  levelState.running = false;
+  const stars = computeStars();
+  const prev = progress.stars[lv.id] || 0;
+  if (stars > prev) progress.stars[lv.id] = stars;
+  if (progress.best[lv.id] === undefined || levelState.elapsed < progress.best[lv.id]) {
+    progress.best[lv.id] = Math.round(levelState.elapsed * 10) / 10;
+  }
+  if (progress.completed.indexOf(lv.id) < 0) progress.completed.push(lv.id);
+  saveJSON(STORE_PROGRESS, progress);
+  updateStarUI();
+  buildProgressList();
+  sfx.correct();
+  setTimeout(sfx.star, 260);
+  showWin(stars, lv);
+}
+
+function failLevel(msg) {
+  sfx.wrong();
+  showToast(msg, 'bad');
+}
+
+function showWin(stars, lv) {
+  const wrap = $('win-stars');
+  wrap.innerHTML = '';
+  for (let i = 0; i < 3; i++) {
+    const s = document.createElement('span');
+    s.textContent = '⭐';
+    s.style.opacity = i < stars ? '1' : '0.22';
+    s.style.filter = i < stars ? 'none' : 'grayscale(1)';
+    wrap.appendChild(s);
+  }
+  const bits = ['完成！'];
+  if (settings.timeLimit) bits.push(levelState.elapsed <= TIME_LIMIT ? '限時完成 ⏱' : '超時但完成');
+  else bits.push('用時 ' + levelState.elapsed.toFixed(0) + ' 秒');
+  if (settings.hints) bits.push(levelState.hintsUsed === 0 ? '沒有使用提示 💪' : '用了 ' + levelState.hintsUsed + ' 次提示');
+  else bits.push('提示已關閉');
+  $('win-sub').innerHTML = '第 ' + lv.id + ' 關 · ' + lv.title + '<br>' + bits.join(' · ');
+  $('win-next').textContent = lv.id < LEVELS.length ? '下一關 →' : '查看進度 ⭐';
+  $('win-modal').classList.add('show');
+}
+
+function checkLevel() {
+  if (levelState.phase !== 'active') return;
+  const lv = LEVELS[levelState.index];
+  if (lv.type === 'copy') {
+    if (state.cells.size === 0) { failLevel('先砌幾塊方塊吧 🧱'); return; }
+    if (cellsEquivalentShape(stripColors(state.cells), levelState.target)) finishLevel();
+    else failLevel('形狀還差一點，再試試 💪');
+  } else if (lv.type === 'angle') {
+    if (state.cells.size === 0) { failLevel('先砌幾塊方塊吧 🧱'); return; }
+    if (sameProjection(state.cells, levelState.target)) finishLevel();
+    else failLevel('影子對不上，再看看 📐');
+  }
+}
+
+/** 提示：找出與目前進度最吻合的旋轉，再指出下一格應該放的位置 */
+function computeHintPlacement() {
+  const target = Array.from(levelState.target.values());
+  const player = Array.from(state.cells.values());
+  if (!target.length) return null;
+  if (!player.length) return { x: target[0].x, y: target[0].y, z: target[0].z };
+
+  let best = null;
+  const t0 = target[0];
+  for (const m of ROTATION_MATRICES) {
+    const r0 = rotatePoint(t0.x, t0.y, t0.z, m);
+    for (const p of player) {
+      const dx = p.x - r0[0], dy = p.y - r0[1], dz = p.z - r0[2];
+      let hit = 0;
+      for (const t of target) {
+        const r = rotatePoint(t.x, t.y, t.z, m);
+        if (state.cells.has(cellKey(r[0] + dx, r[1] + dy, r[2] + dz))) hit++;
+      }
+      if (!best || hit > best.hit) best = { hit, m, dx, dy, dz };
+    }
+  }
+  if (!best) return null;
+  for (const t of target) {
+    const r = rotatePoint(t.x, t.y, t.z, best.m);
+    const x = r[0] + best.dx, y = r[1] + best.dy, z = r[2] + best.dz;
+    if (!inBounds(x, y, z)) continue;
+    if (!state.cells.has(cellKey(x, y, z))) return { x, y, z };
+  }
+  return null;
+}
+
+function hintLevel() {
+  if (levelState.phase !== 'active') return;
+  if (!settings.hints) { showToast('提示功能已關閉'); return; }
+  const lv = LEVELS[levelState.index];
+  levelState.hintsUsed++;
+  if (lv.type === 'mental') { showToast('用眼睛轉動就會看到答案 👀'); return; }
+  if (lv.type === 'angle') { revealTarget(); return; }
+  const cell = computeHintPlacement();
+  if (!cell) { showToast('已經全部砌好了 ✅', 'good'); return; }
+  setLayer(cell.y);
+  showHintMarker(cell);
+  showToast('第 ' + (cell.y + 1) + ' 層，這個位置 💡', 'good');
+}
+
+let revealTimer = null;
+function revealTarget() {
+  const miniHost = $('lv-mini');
+  miniHost.hidden = false;
+  showToast('看着目標 4 秒 ⏳');
+  if (!miniTarget) {
+    miniTarget = createMiniView(miniHost, '目標');
+    miniTarget.setCells(LEVELS[levelState.index].cells.map((c) => [c[0], c[1], c[2], 0]));
+  }
+  clearTimeout(revealTimer);
+  revealTimer = setTimeout(() => {
+    miniHost.hidden = LEVELS[levelState.index].type === 'angle';
+  }, 4000);
+}
+
+/* ---------- 星星與進度 ---------- */
+function totalStars() {
+  let sum = 0;
+  for (const k in progress.stars) sum += progress.stars[k] || 0;
+  return sum;
+}
+function updateStarUI() {
+  const el = $('star-value');
+  if (el) el.textContent = String(totalStars());
+}
+function buildProgressList() {
+  const wrap = $('pg-list');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  LEVELS.forEach((lv, i) => {
+    const stars = progress.stars[lv.id] || 0;
+    const done = stars > 0;
+    const row = document.createElement('div');
+    row.className = 'prow' + (done ? ' done' : '');
+    const best = progress.best[lv.id];
+    const bestTxt = best === undefined ? '' : ' · 最快 ' + best + ' 秒';
+    row.innerHTML =
+      '<span class="no">' + (done ? '✓' : lv.id) + '</span>' +
+      '<button class="nm">' + TYPE_ICON[lv.type] + ' ' + lv.title +
+      '<small>' + TYPE_LABEL[lv.type] + ' · ' + lv.cells.length + ' 塊' + bestTxt + '</small></button>' +
+      '<span class="st">' + starHtml(stars) + '</span>';
+    row.querySelector('.nm').addEventListener('click', () => {
+      setMode('level');
+      loadLevel(i);
+    });
+    wrap.appendChild(row);
+  });
+  $('pg-stars').textContent = totalStars() + ' ⭐';
+  $('pg-sub').textContent = '完成 ' + progress.completed.length + ' / ' + LEVELS.length + ' 關';
+}
+function starHtml(n) {
+  let s = '';
+  for (let i = 0; i < 3; i++) s += '<span class="' + (i < n ? 'on' : 'off') + '">★</span>';
+  return s;
+}
+
+/* ---------- 家長區 ---------- */
+function openParent() {
+  syncParentUI();
+  $('parent-modal').classList.add('show');
+}
+function closeParent() {
+  $('parent-modal').classList.remove('show');
+}
+function syncParentUI() {
+  $('seg-grid').querySelectorAll('button').forEach((b) => {
+    b.classList.toggle('is-active', parseInt(b.dataset.v, 10) === settings.gridSize);
+  });
+  $('seg-font').querySelectorAll('button').forEach((b) => {
+    b.classList.toggle('is-active', b.dataset.v === settings.fontScale);
+  });
+  $('tg-time').classList.toggle('on', !!settings.timeLimit);
+  $('tg-time').textContent = settings.timeLimit ? '開' : '關';
+  $('tg-hint').classList.toggle('on', !!settings.hints);
+  $('tg-hint').textContent = settings.hints ? '開' : '關';
+  $('tg-sound').classList.toggle('on', !!settings.sound);
+  $('tg-sound').textContent = settings.sound ? '開' : '關';
+}
+
+let parentTapCount = 0;
+let parentTapTimer = null;
+let parentHoldTimer = null;
+
+function bindParentZone() {
+  const btn = $('btn-parent');
+  btn.addEventListener('pointerdown', () => {
+    btn.classList.add('is-holding');
+    const t0 = performance.now();
+    clearInterval(parentHoldTimer);
+    parentHoldTimer = setInterval(() => {
+      if (performance.now() - t0 >= 3000) {
+        clearInterval(parentHoldTimer);
+        parentHoldTimer = null;
+        btn.classList.remove('is-holding');
+        parentTapCount = 0;
+        openParent();
+      }
+    }, 100);
+  });
+  const stopHold = () => {
+    clearInterval(parentHoldTimer);
+    parentHoldTimer = null;
+    btn.classList.remove('is-holding');
+  };
+  btn.addEventListener('pointerup', stopHold);
+  btn.addEventListener('pointerleave', stopHold);
+  btn.addEventListener('pointercancel', stopHold);
+  btn.addEventListener('click', () => {
+    parentTapCount++;
+    clearTimeout(parentTapTimer);
+    parentTapTimer = setTimeout(() => { parentTapCount = 0; }, 2000);
+    if (parentTapCount >= 5) {
+      parentTapCount = 0;
+      openParent();
+    }
+  });
+
+  $('parent-close').addEventListener('click', closeParent);
+  $('parent-modal').addEventListener('click', (e) => { if (e.target === $('parent-modal')) closeParent(); });
+
+  $('seg-grid').querySelectorAll('button').forEach((b) => {
+    b.addEventListener('click', () => {
+      setGridSize(parseInt(b.dataset.v, 10));
+      syncParentUI();
+    });
+  });
+  $('seg-font').querySelectorAll('button').forEach((b) => {
+    b.addEventListener('click', () => {
+      settings.fontScale = b.dataset.v;
+      saveJSON(STORE_SETTINGS, settings);
+      applyFontScale();
+      syncParentUI();
+    });
+  });
+  $('tg-time').addEventListener('click', () => {
+    settings.timeLimit = !settings.timeLimit;
+    saveJSON(STORE_SETTINGS, settings);
+    syncParentUI();
+    updateLevelUI();
+  });
+  $('tg-hint').addEventListener('click', () => {
+    settings.hints = !settings.hints;
+    saveJSON(STORE_SETTINGS, settings);
+    syncParentUI();
+    updateLevelUI();
+  });
+  $('tg-sound').addEventListener('click', () => {
+    settings.sound = !settings.sound;
+    saveJSON(STORE_SETTINGS, settings);
+    syncParentUI();
+    if (settings.sound) { ensureAudio(); sfx.place(); }
+  });
+
+  const clearBtn = $('btn-clear-progress');
+  let armed = false;
+  clearBtn.addEventListener('click', () => {
+    if (!armed) {
+      armed = true;
+      clearBtn.classList.add('confirm');
+      clearBtn.textContent = '確定清除？';
+      setTimeout(() => {
+        armed = false;
+        clearBtn.classList.remove('confirm');
+        clearBtn.textContent = '清除';
+      }, 3000);
+      return;
+    }
+    armed = false;
+    clearBtn.classList.remove('confirm');
+    clearBtn.textContent = '清除';
+    progress = { stars: {}, best: {}, completed: [] };
+    saveJSON(STORE_PROGRESS, progress);
+    updateStarUI();
+    buildProgressList();
+    showToast('進度已清除');
+  });
+}
+
+/* ---------- 關卡介面事件 ---------- */
+function bindLevelUI() {
+  $('lv-prev').addEventListener('click', () => loadLevel(levelState.index - 1));
+  $('lv-next').addEventListener('click', () => loadLevel(levelState.index + 1));
+  $('lv-check').addEventListener('click', checkLevel);
+  $('lv-hint').addEventListener('click', hintLevel);
+  $('lv-clear').addEventListener('click', () => {
+    state.cells = new Map();
+    state.undoStack = [];
+    rebuildShape();
+    showToast('已清空，重新砌過 🧱');
+  });
+  $('win-retry').addEventListener('click', () => {
+    $('win-modal').classList.remove('show');
+    loadLevel(levelState.index);
+  });
+  $('win-next').addEventListener('click', () => {
+    $('win-modal').classList.remove('show');
+    if (levelState.index < LEVELS.length - 1) loadLevel(levelState.index + 1);
+    else { setMode('progress'); buildProgressList(); }
+  });
+  for (const btn of document.querySelectorAll('.tabbar-btn')) {
+    btn.addEventListener('click', () => setMode(btn.dataset.mode));
+  }
+}
+
+/* ---------- 初始化（兒童版） ---------- */
+applyFontScale();
+updateStarUI();
+bindParentZone();
+bindLevelUI();
+buildProgressList();
+
+/* ==========================================================================
+   17. 尺寸與動畫迴圈
+   ========================================================================== */
+function onResize() {
+  const w = Math.max(window.innerWidth, 1);
+  const h = Math.max(window.innerHeight, 1);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  if (state.galleryActive && state.mode === 'level') fitGallery();
+}
+window.addEventListener('resize', onResize);
+window.addEventListener('orientationchange', onResize);
+onResize();
+
+let lastTime = performance.now();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const now = performance.now();
+  const dt = Math.min((now - lastTime) / 1000, 0.05);
+  lastTime = now;
+
+  if (cameraAnim) {
+    const t = clamp((now - cameraAnim.start) / cameraAnim.dur, 0, 1);
+    const e = easeInOut(t);
+    view.yaw = lerp(cameraAnim.from.yaw, cameraAnim.to.yaw, e);
+    view.pitch = lerp(cameraAnim.from.pitch, cameraAnim.to.pitch, e);
+    view.dist = lerp(cameraAnim.from.dist, cameraAnim.to.dist, e);
+    applyCamera();
+    if (t >= 1) cameraAnim = null;
+  } else {
+    // 慣性與阻尼
+    if (!dragging) {
+      view.yaw += view.vYaw * dt;
+      view.pitch = clamp(view.pitch + view.vPitch * dt, -PITCH_LIMIT, PITCH_LIMIT);
+      const damp = Math.exp(-3.4 * dt);
+      view.vYaw *= damp;
+      view.vPitch *= damp;
+      if (Math.abs(view.vYaw) < 1e-4) view.vYaw = 0;
+      if (Math.abs(view.vPitch) < 1e-4) view.vPitch = 0;
+    }
+    if (view.autoRotate) view.yaw += AUTO_SPEED * dt;
+  }
+
+  view.pitch = clamp(view.pitch, -PITCH_LIMIT, PITCH_LIMIT);
+  worldGroup.rotation.set(view.pitch, view.yaw, 0, 'YXZ');
+
+  updatePlayTimer();
+  updateLevelTimer();
+  updateAngleReadout();
+
+  for (const mv of miniViews) mv.render();
+  updateGalleryLabels();
+
+  if (hintMarker.visible) {
+    if (now > hintMarkerUntil) {
+      hintMarker.visible = false;
+    } else {
+      hintMarker.scale.setScalar(1 + 0.09 * Math.sin(now / 110));
+    }
+  }
+
+  renderer.render(scene, camera);
+}
+animate();
+
+/* ==========================================================================
+   18. 自動化測試介面（供 Playwright 等外部測試使用）
+   ========================================================================== */
+window.__cubeLab = {
+  ready: true,
+  getState() {
+    return {
+      mode: state.mode,
+      count: state.cells.size,
+      undo: state.undoStack.length,
+      selectedColor: state.selectedColor,
+      layer: state.layer,
+      grid: GRID,
+      level: play.level,
+      score: play.score,
+      phase: play.phase,
+      memoryActive: state.memoryActive,
+      currentLevel: levelState.index + 1,
+      currentLevelType: levelState.type,
+      levelPhase: levelState.phase,
+      hintsUsed: levelState.hintsUsed,
+      elapsed: levelState.elapsed,
+      stars: totalStars(),
+      cells: Array.from(state.cells.values()).map((c) => ({ x: c.x, y: c.y, z: c.z, color: c.color })),
+      rotations: ROTATION_MATRICES.length
+    };
+  },
+  /** 回傳指定格點在螢幕上的座標（用於自動點擊測試） */
+  cellScreen(x, y, z) {
+    const v = cellWorld(x, y, z);
+    worldGroup.localToWorld(v);
+    v.project(camera);
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: rect.left + ((v.x + 1) / 2) * rect.width,
+      y: rect.top + ((1 - v.y) / 2) * rect.height
+    };
+  },
+  equivalent(a, b) { return cellsEquivalent(a, b); },
+
+  /* ===== 兒童版擴充介面 ===== */
+  setLayer(y) { setLayer(y); return state.layer; },
+  getLayer() { return state.layer; },
+  layerCells() {
+    const out = [];
+    for (let x = 0; x < GRID; x++) {
+      for (let z = 0; z < GRID; z++) out.push({ x, y: state.layer, z });
+    }
+    return out;
+  },
+  /** 目前層「可見且未被遮擋」的格點（供自動測試隨機抽樣） */
+  visibleCells() {
+    const out = [];
+    const layer = pickMeshesByLayer[state.layer] || [];
+    const solids = shapeGroup.children;
+    for (const mesh of layer) {
+      const cell = mesh.userData.cell;
+      const world = cellWorld(cell.x, cell.y, cell.z);
+      const dir = world.clone().sub(camera.position).normalize();
+      raycaster.set(camera.position, dir);
+      const hits = raycaster.intersectObjects(solids, false);
+      const first = hits.find((h) => h.object.userData.cell);
+      if (!first) { out.push({ x: cell.x, y: cell.y, z: cell.z }); continue; }
+      const fc = first.object.userData.cell;
+      if (fc.x === cell.x && fc.y === cell.y && fc.z === cell.z) {
+        out.push({ x: cell.x, y: cell.y, z: cell.z });
+      }
+    }
+    return out;
+  },
+  startLevel(i) { loadLevel(i); return levelState.index + 1; },
+  currentLevel() { return levelState.index + 1; },
+  levelData(i) { return LEVELS[i]; },
+  levels() { return LEVELS.map((l) => ({ id: l.id, type: l.type, title: l.title, cells: l.cells })); },
+  checkLevel() { checkLevel(); return levelState.phase; },
+  hintLevel() { hintLevel(); return levelState.hintsUsed; },
+  answerMental(i) { answerMental(i); return levelState.phase; },
+  stars() { return totalStars(); },
+  getProgress() { return JSON.parse(JSON.stringify(progress)); },
+  getSettings() { return JSON.parse(JSON.stringify(settings)); },
+  setSetting(k, v) {
+    settings[k] = v;
+    saveJSON(STORE_SETTINGS, settings);
+    if (k === 'fontScale') applyFontScale();
+    if (k === 'gridSize') setGridSize(v);
+    syncParentUI();
+    updateLevelUI();
+    return JSON.parse(JSON.stringify(settings));
+  },
+  clearAll() { state.cells = new Map(); state.undoStack = []; rebuildShape(); },
+  /** 主場景候選模型狀態 */
+  gallery() {
+    return {
+      active: state.galleryActive,
+      visible: galleryGroup.visible,
+      count: galleryModels.length,
+      dist: Math.round(view.dist * 100) / 100,
+      offsetX: Math.round(galleryGroup.position.x * 100) / 100,
+      aspect: Math.round(camera.aspect * 100) / 100,
+      labels: galleryLabels.map((l) => l.textContent + '@' + Math.round(parseFloat(l.style.left)) + ',' + Math.round(parseFloat(l.style.top))),
+      cam: [Math.round(camera.position.x*100)/100, Math.round(camera.position.y*100)/100, Math.round(camera.position.z*100)/100],
+      fov: camera.fov,
+      viewDist: Math.round(view.dist*100)/100,
+      cands: levelState.candidates.map((c)=>c.cells.map((x)=>x.join(',')).join(' | ')),
+      correctIndex: levelState.correctIndex,
+      modelScreen: (function () {
+        const rect = canvas.getBoundingClientRect();
+        const v = new THREE.Vector3();
+        return galleryModels.map((m) => {
+          const mesh = m.model.children[0];
+          if (mesh) mesh.getWorldPosition(v); else m.outer.getWorldPosition(v);
+          v.project(camera);
+          return {
+            x: Math.round(rect.left + ((v.x + 1) / 2) * rect.width),
+            y: Math.round(rect.top + ((1 - v.y) / 2) * rect.height)
+          };
+        });
+      })(),
+      modelBox: galleryModels.map((m)=>{
+        const box = new THREE.Box3().setFromObject(m.outer);
+        return [Math.round(box.min.x*100)/100, Math.round(box.max.x*100)/100];
+      })
+    };
+  },
+  /** 小模型（候選 / 目標預覽）狀態，供自動測試檢查 */
+  minis() {
+    return miniViews.map((m) => ({
+      w: m.canvas.clientWidth, h: m.canvas.clientHeight,
+      dist: Math.round(m.camera.position.z * 100) / 100,
+      aspect: Math.round(m.camera.aspect * 100) / 100,
+      cells: m.cells.length
+    }));
+  }
+};
+
+buildSwatches();
+buildPresets();
+rebuildLattice();
+buildLayerBar();
+rebuildShape();
+updatePlayPanel();
+setMode('build');
+loadLevel(0, true);
+</script>
+</body>
+</html>
