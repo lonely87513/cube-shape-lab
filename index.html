@@ -379,6 +379,14 @@ button{font-family:inherit;color:inherit}
 .toggle.on{background:linear-gradient(140deg,#a8f0ae,#2fbf62);color:#fff;border-color:rgba(47,191,98,.5)}
 .toggle.confirm{background:linear-gradient(140deg,#ff9a9a,#ff5f5f);color:#fff;border-color:rgba(255,95,95,.5)}
 
+/* 「👀 全部層顯示」開關（放在層數區塊內，手機收合面板時仍然可見） */
+.layer-view{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  background:var(--card-2);border:2px solid var(--line);border-radius:var(--r);padding:4px 8px 4px 12px;
+}
+.layer-view>span{font-size:.74rem;font-weight:800;color:#3a4a63;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.layer-view .toggle{min-width:68px;min-height:40px;padding:4px 12px;font-size:.72rem}
+
 /* ---------- 手機版 ---------- */
 #tabbar{
   display:none;position:absolute;left:0;right:0;bottom:0;z-index:8;
@@ -419,6 +427,18 @@ button{font-family:inherit;color:inherit}
   #panel.is-collapsed .pane[data-pane="build"] > #block-layer{display:flex}
   #panel.is-collapsed #block-layer > h2,
   #panel.is-collapsed #block-layer > .tip{display:none}
+  /* 收合狀態：層數條與「👀 全部層顯示」開關排同一行，不額外佔用高度 */
+  #panel.is-collapsed .pane[data-pane="build"] > #block-layer{
+    display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"bar view";
+    align-items:center;gap:8px;
+  }
+  #panel.is-collapsed #layer-bar{grid-area:bar;min-width:0}
+  #panel.is-collapsed .layer-view{
+    grid-area:view;flex-direction:column;align-items:stretch;justify-content:center;gap:2px;
+    padding:3px 7px;
+  }
+  #panel.is-collapsed .layer-view>span{font-size:.6rem;justify-content:center}
+  #panel.is-collapsed .layer-view .toggle{min-width:50px;min-height:28px;padding:2px 8px;font-size:.64rem}
   #toast{bottom:auto;top:74px}
   #fs-btn{bottom:auto;top:74px;right:12px;width:42px;height:42px}
   .mini canvas{height:140px}
@@ -473,7 +493,11 @@ button{font-family:inherit;color:inherit}
       <div class="block" id="block-layer">
         <h2>🏗️ 層數</h2>
         <div class="layer-bar" id="layer-bar"></div>
-        <p class="tip">👆 選擇要砌的層數</p>
+        <div class="layer-view">
+          <span>👀 全部層顯示</span>
+          <button class="toggle on" id="tg-all-layers" type="button" aria-pressed="true">開</button>
+        </div>
+        <p class="tip">👆 選擇要砌的層數；開啟「👀 全部層顯示」可同時看到其他層</p>
       </div>
 
       <div class="block">
@@ -911,6 +935,7 @@ const state = {
   selectedColor: 0,
   hover: null,
   layer: 0,                 // 目前編輯的層（y 軸，0 = 最底層）
+  showAllLayers: true,      // 是否同時顯示其他層（淡色實心；關閉＝只見當前層）
   memoryActive: false,      // 記憶小挑戰是否進行中
   galleryActive: false       // 心理旋轉：主場景顯示候選模型
 };
@@ -1048,6 +1073,16 @@ const cubeGeometry = createRoundedCubeGeometry(CUBE_SIZE, CUBE_RADIUS);
 const cubeMaterials = PALETTE.map((p) => new THREE.MeshStandardMaterial({
   color: p.hex, vertexColors: true, roughness: 0.52, metalness: 0.06
 }));
+/* 當前層材質：保持原本鮮色，並加少量自發光令當前層在淡色堆中更突出 */
+const currentMaterials = PALETTE.map((p) => new THREE.MeshStandardMaterial({
+  color: p.hex, vertexColors: true, roughness: 0.52, metalness: 0.06,
+  emissive: new THREE.Color(p.hex).multiplyScalar(0.18)
+}));
+/* 其他層材質：淡色實心（不再用半透明線框），令各層可以同時看見 */
+const fadedMaterials = PALETTE.map((p) => new THREE.MeshStandardMaterial({
+  color: new THREE.Color(p.hex).lerp(new THREE.Color(0xffffff), 0.62),
+  vertexColors: true, roughness: 0.92, metalness: 0
+}));
 const targetMaterial = new THREE.MeshStandardMaterial({
   color: TARGET_COLOR, vertexColors: true, roughness: 0.4, metalness: 0.05,
   emissive: new THREE.Color(TARGET_COLOR).multiplyScalar(0.22)
@@ -1080,17 +1115,29 @@ function rebuildShape() {
     const c = ghostGroup.children.pop();
     ghostGroup.remove(c);
   }
+  while (fadedGroup.children.length) {
+    const c = fadedGroup.children.pop();
+    fadedGroup.remove(c);
+  }
   for (const cell of state.cells.values()) {
     if (cell.y === state.layer) {
-      // 當前層：實心小正方體
-      const mesh = new THREE.Mesh(cubeGeometry, cubeMaterials[cell.color % cubeMaterials.length]);
+      // 當前層：鮮色實心小正方體（帶高亮）
+      const mesh = new THREE.Mesh(cubeGeometry, currentMaterials[cell.color % currentMaterials.length]);
       mesh.position.copy(cellWorld(cell.x, cell.y, cell.z));
       mesh.castShadow = true;
       mesh.receiveShadow = true;
       mesh.userData.cell = cell;
       shapeGroup.add(mesh);
+    } else if (state.showAllLayers) {
+      // 其他層：淡色實心小正方體（同時顯示所有層）
+      const mesh = new THREE.Mesh(cubeGeometry, fadedMaterials[cell.color % fadedMaterials.length]);
+      mesh.position.copy(cellWorld(cell.x, cell.y, cell.z));
+      mesh.castShadow = false;
+      mesh.receiveShadow = true;
+      mesh.userData.cell = cell;
+      fadedGroup.add(mesh);
     } else {
-      // 其他層：保留顯示，但以半透明輪廓呈現
+      // 其他層：半透明輪廓（只顯示當前層）
       const line = new THREE.LineSegments(ghostGeometry, ghostMaterial);
       line.position.copy(cellWorld(cell.x, cell.y, cell.z));
       line.userData.cell = cell;
@@ -1717,6 +1764,7 @@ for (const tab of document.querySelectorAll('.tab')) {
   tab.addEventListener('click', () => setMode(tab.dataset.mode));
 }
 $('panel-handle').addEventListener('click', () => togglePanel());
+$('tg-all-layers').addEventListener('click', () => toggleAllLayers());
 $('btn-undo').addEventListener('click', undo);
 $('btn-clear').addEventListener('click', clearAll);
 $('btn-yaw-left').addEventListener('click', () => snapYaw(-1));
@@ -1782,6 +1830,40 @@ function saveJSON(key, value) {
 let settings = loadJSON(STORE_SETTINGS, DEFAULT_SETTINGS);
 let progress = loadJSON(STORE_PROGRESS, { stars: {}, best: {}, completed: [] });
 
+/* ---------- 「👀 全部層顯示」偏好（獨立儲存，不受家長區設定影響） ---------- */
+const STORE_LAYER_VIEW = 'cube-shape-lab-show-all-layers';
+function loadLayerView() {
+  try {
+    const raw = localStorage.getItem(STORE_LAYER_VIEW);
+    if (raw === '0' || raw === 'false') return false;
+    if (raw === '1' || raw === 'true') return true;
+  } catch (e) { /* 隱私模式忽略 */ }
+  return true;                       // 預設開啟
+}
+function saveLayerView(v) {
+  try { localStorage.setItem(STORE_LAYER_VIEW, v ? '1' : '0'); } catch (e) { /* 隱私模式忽略 */ }
+}
+state.showAllLayers = loadLayerView();
+
+/** 同步「👀 全部層顯示」開關按鈕的外觀（開＝綠色、關＝灰色） */
+function syncLayerViewUI() {
+  const btn = $('tg-all-layers');
+  if (!btn) return;
+  btn.classList.toggle('on', !!state.showAllLayers);
+  btn.textContent = state.showAllLayers ? '開' : '關';
+  btn.setAttribute('aria-pressed', state.showAllLayers ? 'true' : 'false');
+}
+
+/** 切換「👀 全部層顯示」：只重畫小正方體，不會清空進度，也不會重新載入場景 */
+function toggleAllLayers(force) {
+  const next = typeof force === 'boolean' ? force : !state.showAllLayers;
+  state.showAllLayers = next;
+  saveLayerView(next);
+  syncLayerViewUI();
+  rebuildShape();
+  return state.showAllLayers;
+}
+
 function applyFontScale() {
   const px = FONT_SIZES[settings.fontScale] || FONT_SIZES.large;
   document.documentElement.style.setProperty('--base', px + 'px');
@@ -1832,6 +1914,9 @@ window.addEventListener('keydown', function () { ensureAudio(); }, { once: true 
 /* ---------- 層級（垂直方向為 y 軸：第 1 層在最底） ---------- */
 const ghostGroup = new THREE.Group();
 worldGroup.add(ghostGroup);
+/* 「👀 全部層顯示」開啟時：其他層以淡色實心小正方體呈現 */
+const fadedGroup = new THREE.Group();
+worldGroup.add(fadedGroup);
 const ghostGeometry = new THREE.EdgesGeometry(new THREE.BoxGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE));
 const ghostMaterial = new THREE.LineBasicMaterial({ color: 0x4f8fc0, transparent: true, opacity: 0.55 });
 
@@ -3205,6 +3290,27 @@ window.__cubeLab = {
   /* ===== 兒童版擴充介面 ===== */
   setLayer(y) { setLayer(y); return state.layer; },
   getLayer() { return state.layer; },
+  /** 「👀 全部層顯示」開關（供自動測試使用） */
+  getShowAllLayers() { return !!state.showAllLayers; },
+  setShowAllLayers(v) { return toggleAllLayers(!!v); },
+  /** 層渲染統計（供自動測試檢查全部層顯示行為） */
+  layerRender() {
+    const cur = shapeGroup.children[0];
+    const fad = fadedGroup.children[0];
+    const gho = ghostGroup.children[0];
+    return {
+      showAll: !!state.showAllLayers,
+      currentLayer: state.layer,
+      currentSolid: shapeGroup.children.length,
+      fadedSolid: fadedGroup.children.length,
+      ghostWire: ghostGroup.children.length,
+      currentType: cur ? cur.type : null,
+      fadedType: fad ? fad.type : null,
+      ghostType: gho ? gho.type : null,
+      currentColor: cur ? '#' + cur.material.color.getHexString() : null,
+      fadedColor: fad ? '#' + fad.material.color.getHexString() : null
+    };
+  },
   layerCells() {
     const out = [];
     for (let x = 0; x < GRID; x++) {
@@ -3344,6 +3450,7 @@ buildSwatches();
 buildPresets();
 rebuildLattice();
 buildLayerBar();
+syncLayerViewUI();
 rebuildShape();
 updatePlayPanel();
 setMode('build');
