@@ -729,8 +729,8 @@ import * as THREE from './assets/vendor/three.module.js';
 let GRID = 5;                      // 每邊的格點數量（家長區可調 3 / 4 / 5）
 const CELL = 1.0;                  // 單一格點的邊長
 let HALF_GRID = (GRID - 1) / 2;    // 格點 0 對應的世界座標位移
-const CUBE_SIZE = CELL * 0.94;     // 實體小正方體的邊長
-const CUBE_RADIUS = CELL * 0.13;   // 圓角半徑
+const CUBE_SIZE = CELL * 1.0;      // 實體小正方體的邊長（填滿整格，相鄰方塊緊貼）
+const CUBE_RADIUS = CELL * 0.10;   // 圓角半徑（保留少量圓角，方便看出每顆方塊的接縫）
 const PICK_SIZE = CELL * 0.76;     // 隱藏拾取盒的邊長（刻意小於實體，確保先命中實體）
 const DRAG_THRESHOLD = 6;          // 判定為拖曳的位移門檻（像素）
 const ROT_SPEED = 0.0092;          // 拖曳旋轉的靈敏度（弧度 / 像素）
